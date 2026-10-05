@@ -9,7 +9,7 @@ import { useExternalSudokuStore } from '@/stores/external-sudoku'
 import { useLogicalHints } from '@/composables/useLogicalHints'
 const emit = defineEmits<{ close: [] }>()
 const store = useExternalSudokuStore()
-const { hint, highlightedCells, requestHint, clearHint } = useLogicalHints(computed(() => store.values))
+const { hint, hintLevel, highlightedCells, requestHint, clearHint, moreHint } = useLogicalHints(computed(() => store.values))
 const board = ref<InstanceType<typeof ExternalBoard> | null>(null), heading = ref<HTMLElement | null>(null)
 const confirmClear = ref(false)
 function enter(digit: number) { store.enterDigit(digit); board.value?.focusSelected() }
@@ -34,7 +34,7 @@ onMounted(() => { store.hydrate(); heading.value?.focus() })
         <div v-if="store.needsReview" class="photo-review"><strong>Revisa la lectura de la foto</strong><p>Compara todas las casillas con el original, incluidas las vacías. Las casillas ámbar son lecturas dudosas. Puedes editar cualquier número.</p><Button :disabled="!!store.conflicts.size" @click="store.confirmReview()">He revisado los números</Button></div>
         <div class="solver-actions"><Button class="hint-trigger" :disabled="store.needsReview" @click="requestHint"><Lightbulb :size="18" />Pedir una pista</Button><Button variant="ghost" :disabled="!store.values.some(Boolean) && !store.uncertain.length" @click="confirmClear = true">Vaciar tablero</Button></div>
         <div v-if="confirmClear" class="clear-confirm"><p>¿Vaciar este tablero externo?</p><div class="solver-actions"><Button variant="outline" @click="store.clear(); clearHint(); confirmClear = false">Vaciar</Button><Button variant="ghost" @click="confirmClear = false">Cancelar</Button></div></div>
-        <HintPanel v-if="hint" :hint="hint" @close="clearHint" />
+        <HintPanel v-if="hint" :hint="hint" :level="hintLevel" @more="moreHint" @close="clearHint" />
         <p class="hint-caption">Este tablero se guarda por separado en este navegador y no cuenta para el historial ni las rachas.</p>
       </section>
       <aside class="solver-photo-section"><PhotoImport @imported="store.importPhoto($event); clearHint()" /></aside>

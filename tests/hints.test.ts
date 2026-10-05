@@ -7,15 +7,16 @@ import { useLogicalHints } from '../src/composables/useLogicalHints'
 const solved = '534678912672195348198342567859761423426853791713924856961537284287419635345286179'.split('').map(Number)
 
 describe('pistas por deducción', () => {
-  it('explica la intersección de candidatos sin modificar el tablero', () => {
+  it('empieza por completar una zona con un solo hueco sin revelar el número', () => {
     const grid = [...solved]; grid[0] = 0
     Object.freeze(grid)
     const hint = getLogicalHint(grid)
     expect(hint.status).toBe('placement')
     expect(hint.placement).toEqual({ cell: 0, digit: 5 })
     expect(hint.steps[0]!.explanation).toContain('fila 1')
-    expect(hint.steps[0]!.explanation).toContain('columna 1')
-    expect(hint.steps[0]!.explanation).toContain('intersección')
+    expect(hint.guidance!.prompt).toContain('solo queda un hueco')
+    expect(hint.guidance!.prompt).not.toContain('5')
+    expect(hint.steps[0]!.explanation).not.toContain('intersección')
     expect(grid[0]).toBe(0)
   })
   it('detecta entradas inválidas, repeticiones y tableros completos', () => {
@@ -47,10 +48,25 @@ describe('pistas por deducción', () => {
   })
   it('invalida la explicación en cuanto cambia un número', () => {
     const values = ref([...solved]); values.value[0] = 0
-    const { hint, highlightedCells, requestHint } = useLogicalHints(computed(() => values.value))
-    requestHint(); expect(highlightedCells.value).toEqual([0])
+    const { hint, hintLevel, highlightedCells, requestHint, moreHint } = useLogicalHints(computed(() => values.value))
+    requestHint(); expect(highlightedCells.value).toHaveLength(9)
+    moreHint(); expect(hintLevel.value).toBe(1)
+    moreHint(); expect(highlightedCells.value).toEqual([0])
+    requestHint(); expect(hintLevel.value).toBe(0)
     values.value[0] = 5
-    expect(hint.value).toBeNull(); expect(highlightedCells.value).toEqual([])
+    expect(hint.value).toBeNull(); expect(highlightedCells.value).toEqual([]); expect(hintLevel.value).toBe(0)
+  })
+  it('prioriza el 2 del bloque central de la captura frente a la intersección del 7', () => {
+    const grid = ['900400500', '400930008', '007002000', '008043007', '243798615', '000000834', '000380102', '061200009', '000050000'].join('').split('').map(Number)
+    const hint = getLogicalHint(grid)
+    expect(hint.placement).toEqual({ cell: 49, digit: 2 })
+    expect(hint.guidance!.prompt).toBe('Mira el bloque central. Busca dónde puede ir el 2.')
+    expect(hint.guidance!.nudge).toContain('columnas 4 y 6 ya hay un 2')
+    expect(hint.guidance!.prompt + hint.guidance!.nudge).not.toContain('F6 C5')
+    expect(hint.guidance!.cells).toHaveLength(9)
+    expect(hint.guidance!.nudgeCells).toEqual(expect.arrayContaining([23, 66]))
+    expect(hint.steps).toHaveLength(1)
+    expect(hint.steps[0]!.technique).toBe('hidden-single')
   })
   it.each([
     ['x-wing', '000005000081200060045300290060820004000056002050710609010602940020000700093570820', '972165438381294567645387291167829354839456172254713689718632945526948713493571826'],

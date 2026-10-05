@@ -1,4 +1,6 @@
 import { BOXES, COLUMNS, ROWS, UNITS, candidateMask, findConflicts, type Grid } from './index'
+import { cellName, findEasyHint } from './easy-hints'
+export { cellName } from './easy-hints'
 
 export type HintTechnique = 'single' | 'hidden-single' | 'locked' | 'naked-pair' | 'hidden-pair' | 'x-wing'
 export interface HintStep {
@@ -15,9 +17,16 @@ export interface LogicalHint {
   candidates: number[][]
   cells: number[]
   placement?: { cell: number; digit: number }
+  guidance?: HintGuidance
 }
 
-export const cellName = (cell: number) => `F${Math.floor(cell / 9) + 1} C${cell % 9 + 1}`
+export interface HintGuidance {
+  prompt: string
+  nudge: string
+  cells: number[]
+  nudgeCells: number[]
+}
+
 const digits = (mask: number) => Array.from({ length: 9 }, (_, i) => i + 1).filter(n => mask & (1 << n))
 const unitName = (index: number) => index < 9 ? `fila ${index + 1}` : index < 18 ? `columna ${index - 8}` : `bloque ${index - 17}`
 const positions = (cells: number[]) => cells.map(cellName).join(', ')
@@ -28,6 +37,11 @@ export function getLogicalHint(grid: Grid): LogicalHint {
   const masks = Array<number>(81).fill(0)
   const result = (status: LogicalHint['status'], message: string, cells: number[] = [], placement?: LogicalHint['placement']): LogicalHint => ({
     status, message, cells, placement, steps: [...steps], candidates: masks.map(digits),
+    guidance: (status === 'placement' || status === 'elimination') && steps.length ? {
+      prompt: 'No veo una jugada directa. Hay una deducción que necesita varios pasos; puedes explorarla si quieres.',
+      nudge: steps[0]!.technique === 'locked' ? 'En la zona señalada, busca un número cuyos huecos posibles estén todos en una misma fila o columna.' : steps[0]!.technique === 'naked-pair' || steps[0]!.technique === 'hidden-pair' ? 'En la zona señalada, busca dos casillas que se puedan reservar para los mismos dos números.' : 'Esta pista necesita comparar varias filas o columnas. Puedes pedir la explicación completa cuando quieras.',
+      cells: [...steps[0]!.cells], nudgeCells: [...steps[0]!.cells],
+    } : undefined,
   })
   if (grid.length !== 81 || Array.from(grid).some(n => !Number.isInteger(n) || n < 0 || n > 9)) {
     return result('invalid', 'El tablero debe tener 81 casillas con números del 1 al 9 o casillas vacías.')
@@ -54,6 +68,14 @@ export function getLogicalHint(grid: Grid): LogicalHint {
         if (!unit.some(i => grid[i] === digit) && !unit.some(i => masks[i]! & (1 << digit))) {
           return result('invalid', `El ${digit} no puede colocarse en ninguna casilla de la ${unitName(u)}. Revisa sus números y los que la cruzan.`, [...unit])
         }
+      }
+    }
+
+    if (!steps.length) {
+      const easy = findEasyHint(grid, masks)
+      if (easy) {
+        steps.push(easy.step)
+        return { ...result('placement', `En ${cellName(easy.cell)} solo puede ir el ${easy.digit}.`, [easy.cell], { cell: easy.cell, digit: easy.digit }), guidance: easy.guidance }
       }
     }
 

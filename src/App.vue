@@ -21,7 +21,7 @@ import type { SavedGame } from '@/domain/history'
 
 const store = useSudokuStore()
 const ExternalSolverView = defineAsyncComponent(() => import('@/views/ExternalSolverView.vue'))
-const { hint, highlightedCells, requestHint, clearHint } = useLogicalHints(computed(() => store.currentGame?.values))
+const { hint, hintLevel, highlightedCells, requestHint, clearHint, moreHint } = useLogicalHints(computed(() => store.currentGame?.values))
 watch(() => store.puzzle?.id, clearHint)
 const historyOpen = ref(false)
 const view = ref(typeof window !== 'undefined' ? window.location.hash : '')
@@ -97,7 +97,7 @@ onUnmounted(() => { clearInterval(clock); document.removeEventListener('visibili
           <template v-else><DigitPad @entered="boardRef?.focusSelected()" /><div v-if="store.preferences.showProgress" class="progress-row"><Progress :model-value="store.progress" class="game-progress" aria-label="Casillas rellenadas" /><span>{{ store.progress }} % rellenado</span></div></template>
           <div v-if="store.currentGame && !store.currentGame.completedAt" class="daily-hint-action"><Button variant="outline" class="hint-trigger" :disabled="store.loading" @click="requestHint"><Lightbulb :size="17" />Pedir una pista</Button></div>
         </div>
-        <HintPanel v-if="hint" :hint="hint" @close="clearHint" />
+        <HintPanel v-if="hint" :hint="hint" :level="hintLevel" @more="moreHint" @close="clearHint" />
         <div class="game-bottom"><p id="board-help">Selecciona una casilla y escribe un número.<br class="mobile-break" /><span> N para notas · Supr para borrar</span></p><span class="saved-indicator"><ShieldCheck :size="15" />{{ store.storageError ? 'Guardado no disponible' : 'Guardado automático' }}</span></div>
         <p class="difficulty-note">{{ techniques[store.difficulty] }}</p>
         <Button variant="ghost" class="external-link" @click="openSolver"><ScanLine :size="17" />Resolver un sudoku de papel o de una foto</Button>
