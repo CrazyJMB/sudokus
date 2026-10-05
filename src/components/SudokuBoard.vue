@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { useSudokuStore } from '@/stores/sudoku'
-import { boxOf } from '@/lib/sudoku'
+import { boxOf } from '@/domain/sudoku'
 
 const store = useSudokuStore()
 const board = ref<HTMLElement | null>(null)

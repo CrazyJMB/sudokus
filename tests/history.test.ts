@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { creditedDays, dayStatus, streaks, type SavedGame } from '../src/lib/history'
-import type { Difficulty } from '../src/lib/sudoku'
+import { creditedDays, dayStatus, streaks, type SavedGame } from '../src/domain/history'
+import type { Difficulty } from '../src/domain/sudoku'
 
 function game(date: string, completedOn: string | null = date, difficulty: Difficulty = 'easy'): SavedGame {
   return { date, difficulty, values: Array<number>(81).fill(1), notes: Array<number>(81).fill(0), startedAt: `${date}T09:00:00Z`, completedAt: completedOn ? `${completedOn}T10:00:00Z` : null, completedOn }

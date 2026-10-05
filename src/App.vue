@@ -13,9 +13,9 @@ import HistoryCalendar from '@/components/HistoryCalendar.vue'
 import HistoryList from '@/components/HistoryList.vue'
 import SettingsPanel from '@/components/SettingsPanel.vue'
 import { useSudokuStore } from '@/stores/sudoku'
-import { formatDate, type DateKey } from '@/lib/dates'
-import { DIFFICULTIES, DIFFICULTY_LABELS, type Difficulty } from '@/lib/sudoku'
-import type { SavedGame } from '@/lib/history'
+import { formatDate, type DateKey } from '@/domain/dates'
+import { DIFFICULTIES, DIFFICULTY_LABELS, type Difficulty } from '@/domain/sudoku'
+import type { SavedGame } from '@/domain/history'
 
 const store = useSudokuStore()
 const historyOpen = ref(false)

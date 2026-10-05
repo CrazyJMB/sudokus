@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { countSolutions, DIFFICULTIES, findConflicts, generateSudoku, isSolved, rateSudoku, solveSudoku, UNITS } from '../src/lib/sudoku'
-import { addDays, isDateKey, todayKey } from '../src/lib/dates'
+import { countSolutions, DIFFICULTIES, findConflicts, generateSudoku, isSolved, rateSudoku, solveSudoku, UNITS } from '../src/domain/sudoku'
+import { addDays, isDateKey, todayKey } from '../src/domain/dates'
 
 describe('motor diario', () => {
   it('reproduce exactamente un tablero por fecha y dificultad', () => {

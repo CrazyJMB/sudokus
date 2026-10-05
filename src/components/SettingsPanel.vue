@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { applyBackup, useSudokuStore } from '@/stores/sudoku'
-import { AID_OPTIONS, MAX_BACKUP_BYTES, mergeGames, serializeBackup, type ProgressBackup } from '@/lib/persistence'
-import { prepareBackup } from '@/lib/backup-async'
-import { DIFFICULTIES, DIFFICULTY_LABELS, type Difficulty } from '@/lib/sudoku'
-import type { SavedGame } from '@/lib/history'
+import { AID_OPTIONS, MAX_BACKUP_BYTES, mergeGames, serializeBackup, type ProgressBackup } from '@/domain/storage'
+import { prepareBackup } from '@/infrastructure/async/backup-async'
+import { DIFFICULTIES, DIFFICULTY_LABELS, type Difficulty } from '@/domain/sudoku'
+import type { SavedGame } from '@/domain/history'
 
 const store = useSudokuStore()
 defineEmits<{ close: [] }>()

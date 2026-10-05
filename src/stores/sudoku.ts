@@ -1,10 +1,10 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { todayKey, isDateKey, type DateKey } from '@/lib/dates'
-import { GENERATOR_VERSION, DIFFICULTIES, candidateMask, findConflicts, isSolved, type Difficulty, type SudokuPuzzle } from '@/lib/sudoku'
-import { streaks, type SavedGame } from '@/lib/history'
-import { generatePuzzleAsync } from '@/lib/generate-async'
-import { DEFAULT_PREFERENCES, STORAGE_SCHEMA, readDurableState, mergeGames, type DurableState, type Preferences, type ProgressBackup } from '@/lib/persistence'
+import { todayKey, isDateKey, type DateKey } from '@/domain/dates'
+import { GENERATOR_VERSION, DIFFICULTIES, candidateMask, findConflicts, isSolved, type Difficulty, type SudokuPuzzle } from '@/domain/sudoku'
+import { streaks, type SavedGame } from '@/domain/history'
+import { generatePuzzleAsync } from '@/infrastructure/async/generate-async'
+import { DEFAULT_PREFERENCES, STORAGE_SCHEMA, readDurableState, mergeGames, type DurableState, type Preferences, type ProgressBackup } from '@/domain/storage'
 
 export const STORAGE_KEY = `sudoku-diario:${GENERATOR_VERSION}:state`
 

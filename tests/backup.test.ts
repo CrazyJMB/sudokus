@@ -1,9 +1,9 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { applyBackup, persistSudoku, STORAGE_KEY, useSudokuStore } from '../src/stores/sudoku'
-import { DEFAULT_PREFERENCES, mergeGames, parseBackup, readDurableState, serializeBackup } from '../src/lib/persistence'
-import { prepareBackup } from '../src/lib/backup-async'
-import type { SavedGame } from '../src/lib/history'
+import { DEFAULT_PREFERENCES, mergeGames, parseBackup, readDurableState, serializeBackup } from '../src/domain/storage'
+import { prepareBackup } from '../src/infrastructure/async/backup-async'
+import type { SavedGame } from '../src/domain/history'
 
 const data = new Map<string, string>()
 const storage = { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value) } }

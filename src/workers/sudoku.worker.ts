@@ -1,7 +1,7 @@
-import { generateSudoku, type Difficulty } from '../lib/sudoku'
-import type { DateKey } from '../lib/dates'
-import { validateImportedGames } from '../lib/persistence'
-import type { SavedGame } from '../lib/history'
+import { generateSudoku, type Difficulty } from '../domain/sudoku'
+import type { DateKey } from '../domain/dates'
+import { validateImportedGames } from '../domain/storage'
+import type { SavedGame } from '../domain/history'
 
 self.onmessage = (event: MessageEvent<{ requestId: number; date: DateKey; difficulty: Difficulty } | { kind: 'validate-import'; requestId: number; games: Record<string, SavedGame> }>) => {
   const { requestId } = event.data

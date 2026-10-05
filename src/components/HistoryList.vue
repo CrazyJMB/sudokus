@@ -4,9 +4,9 @@ import { Check, Clock3, Flame } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useSudokuStore } from '@/stores/sudoku'
-import { formatDate } from '@/lib/dates'
-import { DIFFICULTY_LABELS } from '@/lib/sudoku'
-import type { SavedGame } from '@/lib/history'
+import { formatDate } from '@/domain/dates'
+import { DIFFICULTY_LABELS } from '@/domain/sudoku'
+import type { SavedGame } from '@/domain/history'
 const store = useSudokuStore()
 const emit = defineEmits<{ choose: [game: SavedGame] }>()
 const games = computed(() => Object.values(store.games).sort((a, b) => b.date.localeCompare(a.date) || a.difficulty.localeCompare(b.difficulty)))

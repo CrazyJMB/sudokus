@@ -3,8 +3,8 @@ import { computed, ref, watch } from 'vue'
 import { ChevronLeft, ChevronRight, Check } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { useSudokuStore } from '@/stores/sudoku'
-import { addDays, dateKeyUTC, formatDate, isDateKey, parseDateKey, type DateKey } from '@/lib/dates'
-import { dayStatus } from '@/lib/history'
+import { addDays, dateKeyUTC, formatDate, isDateKey, parseDateKey, type DateKey } from '@/domain/dates'
+import { dayStatus } from '@/domain/history'
 
 const store = useSudokuStore()
 const emit = defineEmits<{ choose: [date: DateKey] }>()

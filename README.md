@@ -26,9 +26,9 @@ npm run preview
 ## La fórmula diaria
 
 ```ts
-import { generateSudoku } from './src/lib/sudoku'
+import { generateSudoku } from "./src/domain/sudoku";
 
-const puzzle = generateSudoku('2026-10-02', 'medium')
+const puzzle = generateSudoku("2026-10-02", "medium");
 // puzzle.givens: 81 números; 0 representa una casilla vacía.
 // puzzle.solution: los 81 números de su única solución.
 // puzzle.clues, puzzle.rating, puzzle.date, puzzle.difficulty, puzzle.id.
@@ -51,11 +51,11 @@ No se usa `Math.random()` ni una fecha implícita dentro del motor. La misma ver
 
 ### Dificultad
 
-| Nivel | Requisito lógico | Condición adicional |
-| --- | --- | --- |
-| Fácil | Se resuelve con candidatos únicos y únicos ocultos. | Se detiene en 39 números iniciales. |
-| Media | Se resuelve incorporando candidatos bloqueados o pares desnudos, y el evaluador necesita al menos una de esas técnicas. | 33 números iniciales o menos. |
-| Difícil | El evaluador de esos métodos no puede completarlo; requiere otras técnicas o búsqueda. | 28 números iniciales o menos. |
+| Nivel   | Requisito lógico                                                                                                        | Condición adicional                 |
+| ------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Fácil   | Se resuelve con candidatos únicos y únicos ocultos.                                                                     | Se detiene en 39 números iniciales. |
+| Media   | Se resuelve incorporando candidatos bloqueados o pares desnudos, y el evaluador necesita al menos una de esas técnicas. | 33 números iniciales o menos.       |
+| Difícil | El evaluador de esos métodos no puede completarlo; requiere otras técnicas o búsqueda.                                  | 28 números iniciales o menos.       |
 
 La dificultad es una clasificación práctica, no una escala universal ni una garantía de una técnica avanzada concreta. **No depende únicamente del número de huecos.** En el nivel medio se rechazan retiradas que superen los métodos intermedios. Se permiten hasta 100 intentos deterministas para encontrar el nivel pedido; si se agotan, aparece un error recuperable, sin devolver un tablero de dificultad incorrecta.
 
@@ -91,13 +91,13 @@ Clave: `sudoku-diario:v1:state`.
 
 ```ts
 interface SavedGame {
-  date: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  values: number[]       // 81 casillas
-  notes: number[]        // 81 máscaras de candidatos
-  startedAt: string     // instante ISO
-  completedAt: string | null
-  completedOn: string | null // fecha civil del dispositivo al completar
+  date: string;
+  difficulty: "easy" | "medium" | "hard";
+  values: number[]; // 81 casillas
+  notes: number[]; // 81 máscaras de candidatos
+  startedAt: string; // instante ISO
+  completedAt: string | null;
+  completedOn: string | null; // fecha civil del dispositivo al completar
 }
 ```
 
@@ -135,24 +135,24 @@ Las notas se conservan tal como las escribes. Solo se retiran notas incompatible
 
 ## Estructura
 
-| Archivo | Responsabilidad |
-| --- | --- |
-| `src/lib/random.ts` | Hash, PRNG y barajado determinista. |
-| `src/lib/sudoku.ts` | Generación, solución, unicidad, evaluación y conflictos. |
-| `src/lib/dates.ts` | Fechas civiles y formato. |
-| `src/lib/history.ts` | Historial y reglas puras de racha. |
-| `src/lib/persistence.ts` | Preferencias, migración, formato de copias y combinación de partidas. |
-| `src/lib/backup-async.ts` | Comprobación de importaciones fuera del hilo de interfaz. |
-| `src/workers/sudoku.worker.ts` | Generación y validación de partidas fuera del hilo de interfaz. |
-| `src/lib/generate-async.ts` | Worker, cancelación y errores. |
-| `src/stores/sudoku.ts` | Pinia, partidas y persistencia. |
-| `src/components/SudokuBoard.vue` | Tablero accesible y teclado. |
-| `src/components/DigitPad.vue` | Números y herramientas. |
-| `src/components/HistoryCalendar.vue` | Navegación por fechas y estados. |
-| `src/components/HistoryList.vue` | Partidas por fecha y dificultad. |
-| `src/components/SettingsPanel.vue` | Configuración y exportación/importación de progreso. |
-| `src/components/ui/` | Componentes oficiales de shadcn-vue. |
-| `src/App.vue`, `src/style.css` | Composición y tema adaptable a móvil. |
+| Archivo                                      | Responsabilidad                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------- |
+| `src/domain/utils/random.ts`                 | Hash, PRNG y barajado determinista.                                   |
+| `src/domain/sudoku/index.ts`                 | Generación, solución, unicidad, evaluación y conflictos.              |
+| `src/domain/dates/index.ts`                  | Fechas civiles y formato.                                             |
+| `src/domain/history/index.ts`                | Historial y reglas puras de racha.                                    |
+| `src/domain/storage/index.ts`                | Preferencias, migración, formato de copias y combinación de partidas. |
+| `src/infrastructure/async/backup-async.ts`   | Comprobación de importaciones fuera del hilo de interfaz.             |
+| `src/workers/sudoku.worker.ts`               | Generación y validación de partidas fuera del hilo de interfaz.       |
+| `src/infrastructure/async/generate-async.ts` | Worker, cancelación y errores.                                        |
+| `src/stores/sudoku.ts`                       | Pinia, partidas y persistencia.                                       |
+| `src/components/SudokuBoard.vue`             | Tablero accesible y teclado.                                          |
+| `src/components/DigitPad.vue`                | Números y herramientas.                                               |
+| `src/components/HistoryCalendar.vue`         | Navegación por fechas y estados.                                      |
+| `src/components/HistoryList.vue`             | Partidas por fecha y dificultad.                                      |
+| `src/components/SettingsPanel.vue`           | Configuración y exportación/importación de progreso.                  |
+| `src/components/ui/`                         | Componentes oficiales de shadcn-vue.                                  |
+| `src/App.vue`, `src/style.css`               | Composición y tema adaptable a móvil.                                 |
 
 ## Comprobaciones
 
