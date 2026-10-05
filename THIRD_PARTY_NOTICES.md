@@ -24,3 +24,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+# Tesseract.js
+
+El reconocimiento óptico de las fotos utiliza Tesseract.js 7 y tesseract.js-core, bajo licencia Apache-2.0:
+
+- https://github.com/naptha/tesseract.js
+- https://github.com/naptha/tesseract.js-core
+- https://www.apache.org/licenses/LICENSE-2.0
+
+Se incluyen copias de la licencia en `public/licenses/tesseract-js.txt` y `public/licenses/tesseract-js-core.txt`, que se distribuyen junto a la web compilada.
+
+El código del proyecto importa la biblioteca sin modificarla. El worker, el motor y los datos de idioma se descargan desde jsDelivr cuando se solicita la lectura de una foto. La imagen se procesa en el navegador.

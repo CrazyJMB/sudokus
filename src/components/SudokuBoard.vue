@@ -4,6 +4,7 @@ import { useSudokuStore } from '@/stores/sudoku'
 import { boxOf } from '@/domain/sudoku'
 
 const store = useSudokuStore()
+defineProps<{ hintCells?: number[] }>()
 const board = ref<HTMLElement | null>(null)
 const selectedValue = computed(() => store.selectedIndex === null ? 0 : store.currentGame?.values[store.selectedIndex] ?? 0)
 function focusSelected() {
@@ -49,6 +50,7 @@ defineExpose({ focusSelected })
           'cell-same': store.preferences.highlightMatching && selectedValue && selectedValue === store.currentGame?.values[(row - 1) * 9 + col - 1],
           'cell-selected': store.selectedIndex === (row - 1) * 9 + col - 1,
           'cell-conflict': store.conflicts.has((row - 1) * 9 + col - 1),
+          'cell-hint': hintCells?.includes((row - 1) * 9 + col - 1),
           'box-right': col === 3 || col === 6,
           'box-bottom': row === 3 || row === 6,
         }" @click="choose((row - 1) * 9 + col - 1)">

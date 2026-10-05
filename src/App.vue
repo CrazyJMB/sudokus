@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { CalendarDays, Check, CircleHelp, Flame, Grid3X3, LoaderCircle, Settings2, ShieldCheck, Trophy } from '@lucide/vue'
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import { CalendarDays, Check, CircleHelp, Flame, Grid3X3, Lightbulb, LoaderCircle, ScanLine, Settings2, ShieldCheck, Trophy } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -12,14 +12,24 @@ import DigitPad from '@/components/DigitPad.vue'
 import HistoryCalendar from '@/components/HistoryCalendar.vue'
 import HistoryList from '@/components/HistoryList.vue'
 import SettingsPanel from '@/components/SettingsPanel.vue'
+import HintPanel from '@/components/hints/HintPanel.vue'
+import { useLogicalHints } from '@/composables/useLogicalHints'
 import { useSudokuStore } from '@/stores/sudoku'
 import { formatDate, type DateKey } from '@/domain/dates'
 import { DIFFICULTIES, DIFFICULTY_LABELS, type Difficulty } from '@/domain/sudoku'
 import type { SavedGame } from '@/domain/history'
 
 const store = useSudokuStore()
+const ExternalSolverView = defineAsyncComponent(() => import('@/views/ExternalSolverView.vue'))
+const { hint, highlightedCells, requestHint, clearHint } = useLogicalHints(computed(() => store.currentGame?.values))
+watch(() => store.puzzle?.id, clearHint)
 const historyOpen = ref(false)
-const settingsOpen = ref(typeof window !== 'undefined' && window.location.hash === '#configuracion')
+const view = ref(typeof window !== 'undefined' ? window.location.hash : '')
+const settingsOpen = computed(() => view.value === '#configuracion')
+const solverOpen = computed(() => view.value === '#resolver')
+watch(view, () => {
+  if (!solverOpen.value && !settingsOpen.value && !store.puzzle && !store.loading) void store.openGame(store.today, store.preferredDifficulty)
+})
 const boardRef = ref<InstanceType<typeof SudokuBoard> | null>(null)
 const dateLabel = computed(() => formatDate(store.selectedDate, { weekday: 'long', day: 'numeric', month: 'long' }))
 const solvedToday = computed(() => Object.values(store.games).some(g => g.date === store.today && g.completedAt && g.completedOn === g.date))
@@ -27,18 +37,19 @@ const earnedStreak = computed(() => store.currentGame?.completedOn === store.cur
 const techniques = { easy: 'Candidatos únicos y únicos ocultos.', medium: 'Añade pares y candidatos bloqueados.', hard: 'Requiere técnicas más avanzadas.' }
 let clock: ReturnType<typeof setInterval> | undefined
 function returnToGame() {
-  settingsOpen.value = false
-  if (typeof window !== 'undefined' && window.location.hash === '#configuracion') window.location.hash = ''
+  view.value = ''
+  if (typeof window !== 'undefined') window.location.hash = ''
 }
-function openSettings() { settingsOpen.value = true; window.location.hash = 'configuracion' }
-function syncView() { settingsOpen.value = window.location.hash === '#configuracion' }
+function openSettings() { view.value = '#configuracion'; window.location.hash = 'configuracion' }
+function openSolver() { view.value = '#resolver'; window.location.hash = 'resolver' }
+function syncView() { view.value = window.location.hash }
 function openDate(date: DateKey) { historyOpen.value = false; returnToGame(); void store.openGame(date, store.difficulty) }
 function openSaved(game: SavedGame) { historyOpen.value = false; returnToGame(); void store.openGame(game.date, game.difficulty) }
 function changeDifficulty(value: unknown) {
   if (DIFFICULTIES.includes(value as Difficulty)) void store.openGame(store.selectedDate, value as Difficulty)
 }
 onMounted(() => {
-  void store.openGame(store.today, store.preferredDifficulty)
+  if (!solverOpen.value) void store.openGame(store.today, store.preferredDifficulty)
   clock = setInterval(() => store.refreshToday(), 15_000)
   document.addEventListener('visibilitychange', refreshClock)
   window.addEventListener('hashchange', syncView)
@@ -54,6 +65,7 @@ onUnmounted(() => { clearInterval(clock); document.removeEventListener('visibili
       <div class="header-actions">
         <Badge class="daily-badge" variant="outline"><span class="badge-dot"></span>Uno cada día</Badge>
         <Button variant="ghost" class="history-trigger" aria-label="Historial" @click="historyOpen = true"><CalendarDays :size="17" /><span>Historial</span></Button>
+        <Button variant="ghost" size="icon" aria-label="Resolver otro sudoku" title="Resolver otro sudoku" :aria-pressed="solverOpen" @click="openSolver"><ScanLine :size="19" /></Button>
         <Button variant="ghost" size="icon" aria-label="Configuración" title="Configuración" :aria-pressed="settingsOpen" @click="openSettings"><Settings2 :size="19" /></Button>
         <Dialog>
           <DialogTrigger as-child><Button variant="ghost" size="icon" aria-label="Cómo funcionan el sudoku y las rachas"><CircleHelp :size="19" /></Button></DialogTrigger>
@@ -65,7 +77,8 @@ onUnmounted(() => { clearInterval(clock); document.removeEventListener('visibili
     </header>
 
     <SettingsPanel v-if="settingsOpen" @close="returnToGame" />
-    <main v-show="!settingsOpen" class="workspace">
+    <ExternalSolverView v-if="solverOpen" @close="returnToGame" />
+    <main v-show="!settingsOpen && !solverOpen" class="workspace">
       <section class="game-section" aria-label="Tu sudoku">
         <div class="game-heading">
           <div><p class="eyebrow">{{ store.isHistorical ? 'Del archivo' : 'Tu reto de hoy' }}</p><h1>{{ store.isHistorical ? 'Sudoku del archivo' : 'Sudoku del día' }}</h1><p class="game-date">{{ dateLabel }} <span>{{ store.selectedDate.slice(0, 4) }}</span></p></div>
@@ -79,12 +92,15 @@ onUnmounted(() => { clearInterval(clock); document.removeEventListener('visibili
           <div class="board-meta"><span><span class="puzzle-indicator"></span>{{ DIFFICULTY_LABELS[store.difficulty] }}<template v-if="store.preferences.showRemainingCounts && store.puzzle"><span class="meta-separator">/</span>{{ store.puzzle.clues }} números iniciales</template></span><span class="board-status">{{ store.currentGame?.completedAt ? 'Completado' : 'En curso' }}</span></div>
           <div v-if="store.loading" class="board-placeholder" role="status"><LoaderCircle class="loading-icon" :size="28" /><span>Preparando tu sudoku…</span></div>
           <div v-else-if="store.error" class="board-placeholder" role="alert"><p>{{ store.error }}</p><Button @click="openDate(store.selectedDate)">Volver a intentar</Button></div>
-          <SudokuBoard v-else-if="store.puzzle" ref="boardRef" />
+          <SudokuBoard v-else-if="store.puzzle" ref="boardRef" :hint-cells="highlightedCells" />
           <div v-if="store.currentGame?.completedAt" class="completion-banner" role="status"><span class="completion-icon"><Check :size="21" /></span><div><strong>¡Sudoku resuelto!</strong><p>{{ earnedStreak ? `Tu racha: ${store.stats.current} ${store.stats.current === 1 ? 'día' : 'días'}. Bien hecho.` : 'Uno más en tu historial. Tu racha sigue igual.' }}</p></div></div>
           <template v-else><DigitPad @entered="boardRef?.focusSelected()" /><div v-if="store.preferences.showProgress" class="progress-row"><Progress :model-value="store.progress" class="game-progress" aria-label="Casillas rellenadas" /><span>{{ store.progress }} % rellenado</span></div></template>
+          <div v-if="store.currentGame && !store.currentGame.completedAt" class="daily-hint-action"><Button variant="outline" class="hint-trigger" :disabled="store.loading" @click="requestHint"><Lightbulb :size="17" />Pedir una pista</Button></div>
         </div>
+        <HintPanel v-if="hint" :hint="hint" @close="clearHint" />
         <div class="game-bottom"><p id="board-help">Selecciona una casilla y escribe un número.<br class="mobile-break" /><span> N para notas · Supr para borrar</span></p><span class="saved-indicator"><ShieldCheck :size="15" />{{ store.storageError ? 'Guardado no disponible' : 'Guardado automático' }}</span></div>
         <p class="difficulty-note">{{ techniques[store.difficulty] }}</p>
+        <Button variant="ghost" class="external-link" @click="openSolver"><ScanLine :size="17" />Resolver un sudoku de papel o de una foto</Button>
       </section>
 
       <aside class="history-sidebar" aria-label="Racha e historial">

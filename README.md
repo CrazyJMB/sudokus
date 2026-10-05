@@ -133,12 +133,41 @@ La importación admite archivos JSON de hasta **10 MB**. Verifica formato y vers
 
 Las notas se conservan tal como las escribes. Solo se retiran notas incompatibles de otras casillas si activas **Borrar notas automáticamente**. Deshacer restaura tanto números como notas. Los movimientos para deshacer no se conservan al recargar, cambiar de partida o importar progreso.
 
+## Pistas explicadas
+
+El botón **Pedir una pista** analiza los números visibles sin consultar la solución ni las notas manuales. Calcula la intersección de los números disponibles en fila, columna y bloque, y encadena candidatos únicos, únicos ocultos, candidatos bloqueados, parejas desnudas, parejas ocultas y X-Wing. Cada eliminación indica las casillas y los números afectados. F1 C1 es la primera fila y primera columna; los bloques se numeran de izquierda a derecha y de arriba abajo.
+
+Las pistas señalan dónde mirar y explican el razonamiento; no escriben números, cambian preferencias ni borran notas. Se cierran automáticamente si cambia el tablero. El motor avisa de repeticiones y contradicciones deducibles. No usa búsqueda, adivinación ni una IA generativa: cuando estas técnicas no bastan, lo indica. Parte de que los números introducidos son correctos; no certifica que un tablero externo tenga solución única ni detecta necesariamente todas las contradicciones globales.
+
+## Resolver sudokus externos y leer fotos
+
+Abre **Resolver otro sudoku** (icono de escáner en la cabecera o enlace bajo el tablero). La página `#resolver` ofrece un tablero vacío: todas sus casillas se pueden editar con teclado, teclado numérico móvil o los botones. Usa **Pedir una pista** para obtener las mismas explicaciones que en el sudoku diario.
+
+El tablero externo se guarda aparte con la clave `sudoku-diario:external:v1`. No altera partidas, rachas ni exportaciones del juego diario. **Deshacer** permite recuperar cambios, borrados e importaciones durante la sesión.
+
+Para importar una foto:
+
+1. Pulsa **Hacer foto** en un móvil con cámara o **Elegir imagen** para abrir una foto. En equipos sin captura de cámara, el navegador ofrece un selector de archivos.
+2. Si hace falta, gira la imagen. Marca las esquinas exteriores en este orden: superior izquierda, superior derecha, inferior derecha, inferior izquierda. También puedes usar las flechas y Enter.
+3. Revisa la cuadrícula recortada y pulsa **Leer números**. Puedes cancelar sin cambiar el tablero.
+4. Pulsa **Usar lectura y revisar** para sustituir el tablero externo. Compara todas las casillas con la foto, incluidas las vacías; corrige errores y confirma **He revisado los números** para habilitar las pistas. Las casillas ámbar son dudosas y las rojas tienen números repetidos.
+
+Se admiten imágenes de hasta 20 MB que el navegador pueda decodificar (por ejemplo JPG, PNG y WebP). El procesamiento corrige la perspectiva, recorta las 81 casillas y reconoce sus cifras con [Tesseract.js](https://github.com/naptha/tesseract.js). Las fotos se procesan localmente y no se guardan; solo se guardan los números y el estado de revisión. El lector se carga al usar OCR y descarga su worker, motor WebAssembly y modelo de idioma desde jsDelivr. La primera lectura requiere internet; la disponibilidad posterior depende de la caché del navegador. El resto de la aplicación no depende del OCR ni de esas descargas.
+
+El OCR funciona mejor con cifras impresas, una cuadrícula completa, buena luz y una foto nítida. Las cifras manuscritas, notas pequeñas, sombras o bordes mal marcados pueden producir errores. La lectura siempre pasa por revisión humana y nunca rellena cifras mediante la solución del sudoku. Se ha probado en Chromium con una imagen de sudoku impreso; falta comprobar una variedad de fotografías y cámaras físicas.
+
 ## Estructura
 
 | Archivo                                      | Responsabilidad                                                       |
 | -------------------------------------------- | --------------------------------------------------------------------- |
 | `src/domain/utils/random.ts`                 | Hash, PRNG y barajado determinista.                                   |
 | `src/domain/sudoku/index.ts`                 | Generación, solución, unicidad, evaluación y conflictos.              |
+| `src/domain/sudoku/hints.ts`                 | Deducciones puras y explicaciones de pistas, sin acceder a la solución. |
+| `src/composables/useLogicalHints.ts`         | Petición, resaltado y descarte de pistas cuando cambia el tablero. |
+| `src/infrastructure/ocr/`                   | Lectura de imágenes, corrección de perspectiva y OCR cancelable. |
+| `src/stores/external-sudoku.ts`              | Tablero externo, revisión de OCR, deshacer y guardado independiente. |
+| `src/views/ExternalSolverView.vue`          | Página para resolver un sudoku externo. |
+| `src/components/hints/`, `src/components/solver/` | Explicaciones, tablero editable y flujo de importación por foto. |
 | `src/domain/dates/index.ts`                  | Fechas civiles y formato.                                             |
 | `src/domain/history/index.ts`                | Historial y reglas puras de racha.                                    |
 | `src/domain/storage/index.ts`                | Preferencias, migración, formato de copias y combinación de partidas. |
@@ -156,6 +185,8 @@ Las notas se conservan tal como las escribes. Solo se retiran notas incompatible
 
 ## Comprobaciones
 
-Las 25 pruebas verifican reproducción por semilla, 36 combinaciones de fecha y nivel, soluciones únicas, clasificación lógica, cambios de año y horario de verano, rachas sin crédito retroactivo, completado al cruzar medianoche, protección de números iniciales, deshacer y persistencia tras recarga. También comprueban las ayudas desactivadas por defecto y activables, la conservación de notas manuales, la migración de guardados antiguos, el traslado completo entre dispositivos, la protección de partidas completadas y el rechazo de importaciones inválidas o sin espacio. Se verifica el renderizado de los componentes, configuración, 81 casillas y vista de victoria. `npm run build` verifica los tipos de todos los componentes. No se ha realizado una revisión visual en navegador en este entorno.
+Las pruebas de `npm test` verifican reproducción por semilla, 36 combinaciones de fecha y nivel, soluciones únicas, clasificación lógica, cambios de año y horario de verano, rachas sin crédito retroactivo, completado al cruzar medianoche, protección de números iniciales, deshacer y persistencia tras recarga. También comprueban las ayudas desactivadas por defecto y activables, la conservación de notas manuales, la migración de guardados antiguos, el traslado completo entre dispositivos, la protección de partidas completadas y el rechazo de importaciones inválidas o sin espacio. Las nuevas pruebas cubren deducciones y eliminaciones frente a soluciones conocidas, pares ocultos, X-Wing, contradicciones, invalidación de pistas, aislamiento del tablero externo y geometría de las fotos. `npm run build` verifica los tipos de todos los componentes.
+
+`npm run test:e2e` comprueba en Chromium las pistas del diario, la edición y persistencia externas, navegación y anchura móvil, OCR real de un sudoku impreso y cancelación. Requiere tener Chromium instalado (`npx playwright install chromium`); la prueba de OCR necesita conexión para cargar el lector. Playwright inicia el servidor en el puerto 4174. Las capturas y trazas quedan en `test-results/`.
 
 Referencias del stack: [Pinia: estado y suscripciones](https://pinia.vuejs.org/core-concepts/state.html), [shadcn-vue](https://www.shadcn-vue.com/), [Reka UI](https://reka-ui.com/) y [Vite](https://vite.dev/). La atribución de los componentes se incluye en `THIRD_PARTY_NOTICES.md`.
