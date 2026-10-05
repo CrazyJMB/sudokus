@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { CalendarDays, Check, CircleHelp, Flame, Grid3X3, LoaderCircle, Settings2, ShieldCheck, Trophy } from 'lucide-vue-next'
+import { CalendarDays, Check, CircleHelp, Flame, Grid3X3, LoaderCircle, Settings2, ShieldCheck, Trophy } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'

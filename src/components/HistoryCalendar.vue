@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ChevronLeft, ChevronRight, Check } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Check } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { useSudokuStore } from '@/stores/sudoku'
 import { addDays, dateKeyUTC, formatDate, isDateKey, parseDateKey, type DateKey } from '@/lib/dates'

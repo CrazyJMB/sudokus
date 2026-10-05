@@ -11,10 +11,10 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@lucide/vue": "^1.52.0",
     "@vueuse/core": "^15.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-vue-next": "^0.468.0",
     "pinia": "^3.0.0",
     "reka-ui": "^2.0.0",
     "tailwind-merge": "^3.0.0",
@@ -29,5 +29,9 @@
     "vite": "^7.0.0",
     "vitest": "^3.2.0",
     "vue-tsc": "^3.0.0"
+  },
+  "allowScripts": {
+    "vue-demi@0.14.10": true,
+    "esbuild@0.28.2": true
   }
 }

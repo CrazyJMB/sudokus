@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue'
-import { Check, ChevronLeft, Download, LoaderCircle, Upload } from 'lucide-vue-next'
+import { Check, ChevronLeft, Download, LoaderCircle, Upload } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'

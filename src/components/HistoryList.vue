@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Check, Clock3, Flame } from 'lucide-vue-next'
+import { Check, Clock3, Flame } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useSudokuStore } from '@/stores/sudoku'

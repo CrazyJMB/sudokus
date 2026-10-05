@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Eraser, Pencil, Undo2 } from 'lucide-vue-next'
+import { Eraser, Pencil, Undo2 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { useSudokuStore } from '@/stores/sudoku'
 const store = useSudokuStore()
