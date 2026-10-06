@@ -205,6 +205,14 @@ kbd { font-family: inherit; font-size: 0.75rem; border: 1px solid #48525e; borde
 .calendar-footer p { margin: 0; font-size: 0.75rem; line-height: 1.7; color: #98a7bd; }
 .history-footnote { color: #8594aa; font-size: 0.75rem; line-height: 1.6; margin: 14px 5px 0; }
 .site-footer { display: flex; justify-content: space-between; gap: 15px; margin-top: 45px; padding: 22px 0 25px; border-top: 1px solid #ffffff0d; font-size: 0.75rem; color: #8593a8; }
+.site-information { max-width: 940px; margin: 52px auto 0; padding-top: 32px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 0.875rem; line-height: 1.8; }
+.site-information-intro { max-width: 680px; }
+.site-information h2 { color: var(--foreground); font-size: 1.35rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1.4; }
+.site-information h3 { color: #d5ddea; font-size: 1rem; font-weight: 550; margin: 0 0 10px; }
+.site-information p { margin: 0 0 12px; }
+.site-information-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 36px; margin-top: 28px; }
+.site-information a, .site-footer a { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 780px) { .site-information-grid { grid-template-columns: minmax(0, 1fr); } }
 .app-dialog { background: #181e28; border-color: #3c4858; padding: 27px; border-radius: 16px; max-width: min(460px, calc(100vw - 2rem)); max-height: 90dvh; overflow-y: auto; font-size: 1rem; }
 .help-copy p { font-size: 0.9375rem; line-height: 1.7; color: #b9c6d8; margin: 15px 0 0; }
 .help-copy strong { color: #e3eaf5; font-weight: 550; }

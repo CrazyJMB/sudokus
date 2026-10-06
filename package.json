@@ -9,6 +9,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "seo:image": "node scripts/render-social-card.mjs",
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {

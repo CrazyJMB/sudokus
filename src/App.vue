@@ -110,8 +110,6 @@ onUnmounted(() => { clearInterval(clock); document.removeEventListener('visibili
       </aside>
     </main>
 
-    <footer class="site-footer"><span>Un día. Un tablero. A tu ritmo.</span><span>Tu progreso vive en este navegador.</span></footer>
-
     <Dialog v-model:open="historyOpen"><DialogContent class="app-dialog history-dialog"><DialogHeader><DialogTitle>Tu historial</DialogTitle><DialogDescription>{{ store.stats.total }} sudokus resueltos en {{ store.stats.days }} días distintos.</DialogDescription></DialogHeader><Tabs default-value="calendar"><TabsList class="history-tabs"><TabsTrigger value="calendar">Calendario</TabsTrigger><TabsTrigger value="activity">Partidas</TabsTrigger></TabsList><TabsContent value="calendar"><HistoryCalendar @choose="openDate" /></TabsContent><TabsContent value="activity"><HistoryList @choose="openSaved" /></TabsContent></Tabs><p class="history-footnote">Completar un sudoku anterior no suma días a tu racha.</p></DialogContent></Dialog>
   </div>
 </template>

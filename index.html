@@ -4,12 +4,120 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#10131a" />
-    <meta name="description" content="Un sudoku distinto cada día. Elige tu dificultad, guarda tu progreso y construye tu racha, sin cuentas." />
-    <title>Sudoku diario</title>
+    <meta name="description" content="Juega un sudoku diario gratis, sin registro y con tres dificultades. Guarda tu progreso y aprende con pistas explicadas. Un proyecto personal de Crazyjmb." />
+    <meta name="author" content="Crazyjmb" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <title>Sudoku diario gratis online | Crazyjmb</title>
+    <link rel="author" href="https://crazyjmb.com/" />
+    <link rel="canonical" href="https://sudokus.crazyjmb.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:site_name" content="Sudoku diario · Crazyjmb" />
+    <meta property="og:title" content="Sudoku diario gratis online | Crazyjmb" />
+    <meta property="og:description" content="Un sudoku nuevo cada día, tres dificultades y pistas para aprender paso a paso. Gratis y sin registro. Un proyecto personal de Crazyjmb." />
+    <meta property="og:url" content="https://sudokus.crazyjmb.com/" />
+    <meta property="og:image" content="https://sudokus.crazyjmb.com/social-card.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Sudoku diario: un sudoku nuevo cada día. Proyecto personal de Crazyjmb, con un tablero de sudoku sobre fondo oscuro." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sudoku diario gratis online | Crazyjmb" />
+    <meta name="twitter:description" content="Un sudoku nuevo cada día, tres dificultades y pistas para aprender paso a paso. Gratis y sin registro. Un proyecto personal de Crazyjmb." />
+    <meta name="twitter:image" content="https://sudokus.crazyjmb.com/social-card.png" />
+    <meta name="twitter:image:alt" content="Sudoku diario, un proyecto personal de Crazyjmb. Un sudoku nuevo cada día, gratis y sin registro." />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Person",
+            "@id": "https://sudokus.crazyjmb.com/#creator",
+            "name": "Crazyjmb",
+            "url": "https://crazyjmb.com/"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://sudokus.crazyjmb.com/#website",
+            "url": "https://sudokus.crazyjmb.com/",
+            "name": "Sudoku diario",
+            "alternateName": "Sudoku diario de Crazyjmb",
+            "inLanguage": "es",
+            "creator": { "@id": "https://sudokus.crazyjmb.com/#creator" },
+            "publisher": { "@id": "https://sudokus.crazyjmb.com/#creator" }
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://sudokus.crazyjmb.com/#webpage",
+            "url": "https://sudokus.crazyjmb.com/",
+            "name": "Sudoku diario gratis online | Crazyjmb",
+            "description": "Juega un sudoku diario gratis, sin registro y con tres dificultades. Guarda tu progreso y aprende con pistas explicadas. Un proyecto personal de Crazyjmb.",
+            "inLanguage": "es",
+            "isPartOf": { "@id": "https://sudokus.crazyjmb.com/#website" },
+            "author": { "@id": "https://sudokus.crazyjmb.com/#creator" },
+            "mainEntity": { "@id": "https://sudokus.crazyjmb.com/#app" },
+            "primaryImageOfPage": {
+              "@type": "ImageObject",
+              "url": "https://sudokus.crazyjmb.com/social-card.png",
+              "width": 1200,
+              "height": 630
+            }
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://sudokus.crazyjmb.com/#app",
+            "name": "Sudoku diario",
+            "url": "https://sudokus.crazyjmb.com/",
+            "description": "Sudoku diario gratis con tres dificultades, notas, pistas razonadas, historial y lectura de sudokus desde fotos. Un proyecto personal de Crazyjmb.",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Any",
+            "browserRequirements": "Requiere un navegador con JavaScript habilitado.",
+            "inLanguage": "es",
+            "isAccessibleForFree": true,
+            "creator": { "@id": "https://sudokus.crazyjmb.com/#creator" },
+            "author": { "@id": "https://sudokus.crazyjmb.com/#creator" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
+    <div class="app-shell">
+      <noscript><p class="storage-alert">Activa JavaScript para jugar al sudoku, guardar tu progreso y usar las pistas.</p></noscript>
+      <section class="site-information" aria-labelledby="about-sudoku">
+        <div class="site-information-intro">
+          <p class="eyebrow">Un día. Un tablero. A tu ritmo.</p>
+          <h2 id="about-sudoku">Sudoku diario gratis, para jugar a tu manera</h2>
+          <p>Un sudoku nuevo cada día en dificultad fácil, media y difícil, con una única solución. Juega online sin registro, escribe tus notas y vuelve cuando quieras: tu progreso se guarda en este navegador.</p>
+        </div>
+        <div class="site-information-grid">
+          <div>
+            <h3>Cómo jugar al sudoku</h3>
+            <p>Completa las 81 casillas con números del 1 al 9. Cada fila, columna y bloque de 3 × 3 debe contener los nueve números sin repetir. Los números iniciales no se pueden cambiar.</p>
+            <p>Selecciona una casilla y usa el teclado o los botones. Puedes tomar notas, borrar y deshacer. Las ayudas son opcionales y se activan en <a href="#configuracion">Configuración</a>.</p>
+          </div>
+          <div>
+            <h3>Pistas para aprender, paso a paso</h3>
+            <p>Si te atascas, pide una pista: primero te orienta sobre dónde mirar y después puedes consultar la explicación. Tú decides cuándo ver la respuesta.</p>
+            <p>También puedes <a href="#resolver">introducir un sudoku de papel o de una foto</a> para recibir pistas razonadas. Revisa los números de la foto antes de continuar.</p>
+          </div>
+          <div>
+            <h3>Tu historial y tu racha diaria</h3>
+            <p>Resuelve el sudoku de hoy para sumar un día de racha. Puedes recuperar sudokus anteriores desde el calendario y continuar partidas en cada dificultad.</p>
+            <p>El progreso es local a este navegador. Exporta e importa tus partidas desde Configuración para llevarlas a otro dispositivo.</p>
+          </div>
+          <div>
+            <h3>Un proyecto personal de Crazyjmb</h3>
+            <p>Sudoku diario es un proyecto personal creado por <a href="https://crazyjmb.com/" rel="author">Crazyjmb</a>: un espacio para disfrutar de la lógica, practicar y aprender a tu ritmo.</p>
+            <p>Conoce al creador y descubre sus otros proyectos en su <a href="https://crazyjmb.com/">portfolio en crazyjmb.com</a>.</p>
+          </div>
+        </div>
+      </section>
+      <footer class="site-footer"><span>Sudoku diario · Un proyecto de <a href="https://crazyjmb.com/" rel="author">Crazyjmb</a></span><span>Tu progreso vive en este navegador.</span></footer>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
