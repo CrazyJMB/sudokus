@@ -1,4 +1,8 @@
-# shadcn-vue
+# Avisos de terceros
+
+La licencia PolyForm Noncommercial de este proyecto se aplica al código propio de Crazyjmb. Los componentes y dependencias de terceros conservan sus licencias originales; este archivo no las sustituye ni añade restricciones a esos componentes.
+
+## shadcn-vue
 
 Los archivos de `src/components/ui` provienen del registro oficial de shadcn-vue (estilo new-york-v4): https://v3.shadcn-vue.com/r/styles/new-york-v4/.
 Se incluyen Button, Badge, Dialog, Select, Tabs, Progress y Switch. Se conservan los componentes originales; el tema se aplica en `src/style.css`.
@@ -25,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-# Tesseract.js
+## Tesseract.js
 
 El reconocimiento óptico de las fotos utiliza Tesseract.js 7 y tesseract.js-core, bajo licencia Apache-2.0:
 

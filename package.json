@@ -2,6 +2,11 @@
   "name": "sudoku-diario",
   "private": true,
   "version": "1.0.0",
+  "description": "Sudoku diario con pistas razonadas y lectura de fotos. Un proyecto personal de Crazyjmb.",
+  "author": { "name": "Crazyjmb", "url": "https://crazyjmb.com/" },
+  "homepage": "https://sudokus.crazyjmb.com/",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "engines": { "node": "^22.12.0 || >=24.0.0" },
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

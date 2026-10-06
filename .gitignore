@@ -4,3 +4,29 @@ dist/
 *.tsbuildinfo
 test-results/
 playwright-report/
+coverage/
+blob-report/
+playwright/.cache/
+
+# Local configuration, credentials and progress exports
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local
+*.log
+*.pem
+*.key
+*.p12
+*.pfx
+sudoku-diario-progreso-*.json
+
+# Editor, operating system and local tooling
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+.codex/
+.agents/
+.aws/

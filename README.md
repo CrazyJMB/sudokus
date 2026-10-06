@@ -1,196 +1,111 @@
 # Sudoku diario
 
-Un proyecto personal de [Crazyjmb](https://crazyjmb.com/). URL oficial: [sudokus.crazyjmb.com](https://sudokus.crazyjmb.com/). Consulta [SEO.md](./SEO.md) para publicar los archivos de descubrimiento, verificar la web en Google Search Console y enviar el sitemap.
+**Un día. Un tablero. A tu ritmo.** Un proyecto personal de [Crazyjmb](https://crazyjmb.com/) para jugar al sudoku online, sin cuentas y con el progreso guardado en tu navegador.
 
-Web estática en Vue 3 + TypeScript + Pinia + shadcn-vue + Tailwind CSS 4. No tiene backend, cuentas ni llamadas a una API para crear los sudokus.
+[Jugar al sudoku](https://sudokus.crazyjmb.com/) · [Portfolio de Crazyjmb](https://crazyjmb.com/) · [Documentación técnica](docs/TECHNICAL.md)
 
-Por defecto se abre en **difícil y sin ayudas**, con números en tinta neutra y únicamente un borde para identificar la casilla en la que escribes. No hay resaltado de números iguales, fila, columna o bloque; tampoco avisos rojos, contadores, porcentaje de avance ni eliminación automática de notas. Las notas se escriben a mano con el modo Notas.
+![Sudoku diario, un proyecto personal de Crazyjmb](public/social-card.png)
 
-El botón de configuración permite activar cada ayuda por separado y elegir el nivel que se abre al entrar. Las preferencias se guardan automáticamente y la configuración tiene su propia vista (`#configuracion`). Cambiar temporalmente el nivel de una partida no cambia el nivel predeterminado.
+## Qué puedes hacer
 
-## Ejecutar y compilar
+- Jugar un sudoku nuevo cada día en dificultad **fácil, media o difícil**, siempre con una única solución.
+- Escribir notas, borrar y deshacer con teclado o controles táctiles.
+- Activar las ayudas que prefieras. Por defecto se juega en **difícil y sin ayudas visuales**.
+- Pedir pistas razonadas que orientan antes de revelar una respuesta.
+- Consultar el historial, continuar partidas anteriores y mantener una racha diaria.
+- Exportar e importar partidas, notas y preferencias entre dispositivos.
+- Introducir otro sudoku a mano o desde una foto para recibir pistas paso a paso.
 
-Necesitas Node.js 22.12+ o 24 LTS.
+La misma fecha y dificultad producen el mismo tablero. La generación y la validación se ejecutan en un Web Worker para mantener la interfaz disponible.
+
+## Tecnologías
+
+Vue 3 · TypeScript · Vite · Pinia · Tailwind CSS 4 · shadcn-vue / Reka UI · Tesseract.js · Vitest · Playwright.
+
+Es una aplicación estática: no necesita servidor de API, base de datos, cuentas ni claves de servicios.
+
+## Ejecutar en local
+
+Necesitas **Node.js 24** (versión indicada en `.nvmrc`) y npm. También se admite Node.js 22.12 o superior dentro de la rama 22.
+
+Clona el repositorio o descarga su código y, desde la carpeta del proyecto, ejecuta:
 
 ```sh
 npm ci
 npm run dev
 ```
 
+Abre **http://localhost:4173**. No hace falta crear un archivo `.env`.
+
+## Comandos
+
+| Comando | Para qué sirve |
+| --- | --- |
+| `npm run dev` | Servidor de desarrollo en el puerto 4173. |
+| `npm run typecheck` | Comprobación de TypeScript y componentes Vue. |
+| `npm test` | Pruebas unitarias y de renderizado con Vitest. |
+| `npm run build` | Comprueba tipos y genera la web en `dist/`. |
+| `npm run preview` | Sirve la compilación localmente; usa la URL que muestra Vite. |
+| `npm run test:e2e` | Compila y prueba los flujos reales en Chromium, en el puerto 4174. |
+| `npm run seo:image` | Regenera la imagen social; requiere Chromium de Playwright. |
+
+Para instalar el navegador y ejecutar las pruebas completas:
+
 ```sh
+npx playwright install chromium
 npm test
-npm run build
-npm run preview
+npm run test:e2e
 ```
 
-`npm run build` comprueba TypeScript y crea `dist/`. Sube **el contenido de esa carpeta** a cualquier hosting estático (Cloudflare Pages, GitHub Pages o tu hosting con acceso SSH). La app usa una sola página y rutas relativas; también puede servirse dentro de una subcarpeta. Debes servirla por HTTP/HTTPS: abrir `index.html` con `file://` no permite cargar correctamente los módulos y el Web Worker. `node_modules` no se necesita en el servidor.
+En Linux, `npx playwright install --with-deps chromium` instala también las dependencias del sistema. La suite incluye generación y unicidad, guardado, rachas, importaciones, controles, pistas, vista móvil, SEO y OCR. La prueba de OCR real necesita conexión a jsDelivr. Los informes y capturas se generan localmente y no se versionan.
 
-## La fórmula diaria
-
-```ts
-import { generateSudoku } from "./src/domain/sudoku";
-
-const puzzle = generateSudoku("2026-10-02", "medium");
-// puzzle.givens: 81 números; 0 representa una casilla vacía.
-// puzzle.solution: los 81 números de su única solución.
-// puzzle.clues, puzzle.rating, puzzle.date, puzzle.difficulty, puzzle.id.
-```
-
-La semilla se obtiene de:
-
-```text
-sudoku-diario:v1:2026-10-02:medium
-```
-
-1. Se valida la fecha ISO `AAAA-MM-DD`.
-2. FNV-1a convierte esa cadena en una semilla de 32 bits.
-3. Mulberry32 produce una secuencia pseudoaleatoria reproducible.
-4. Un solucionador de restricciones con selección de la casilla más restringida crea una cuadrícula completa. El orden de sus candidatos se baraja con esa secuencia.
-5. Se retiran números en un orden barajado. Solo se acepta una retirada cuando el tablero sigue teniendo exactamente **una** solución; la búsqueda se detiene al encontrar dos.
-6. Un evaluador lógico clasifica el tablero y la generación se detiene al cumplir los requisitos del nivel.
-
-No se usa `Math.random()` ni una fecha implícita dentro del motor. La misma versión, fecha y dificultad reconstruye los mismos números en todos los equipos. La dificultad forma parte de la semilla: cada nivel tiene su propio tablero y progreso.
-
-### Dificultad
-
-| Nivel   | Requisito lógico                                                                                                        | Condición adicional                 |
-| ------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| Fácil   | Se resuelve con candidatos únicos y únicos ocultos.                                                                     | Se detiene en 39 números iniciales. |
-| Media   | Se resuelve incorporando candidatos bloqueados o pares desnudos, y el evaluador necesita al menos una de esas técnicas. | 33 números iniciales o menos.       |
-| Difícil | El evaluador de esos métodos no puede completarlo; requiere otras técnicas o búsqueda.                                  | 28 números iniciales o menos.       |
-
-La dificultad es una clasificación práctica, no una escala universal ni una garantía de una técnica avanzada concreta. **No depende únicamente del número de huecos.** En el nivel medio se rechazan retiradas que superen los métodos intermedios. Se permiten hasta 100 intentos deterministas para encontrar el nivel pedido; si se agotan, aparece un error recuperable, sin devolver un tablero de dificultad incorrecta.
-
-El cálculo se ejecuta en un **Web Worker** para mantener la interfaz disponible. Cambiar de partida cancela el cálculo anterior. En Node, el mismo motor puro funciona sin Worker.
-
-### Versionado: conservar tableros antiguos
-
-`GENERATOR_VERSION = 'v1'` forma parte de la semilla, de cada ID y de la clave de guardado. **No cambies el algoritmo v1 una vez publicado.** Cualquier cambio que altere los tableros debe introducir una versión nueva y conservar el generador anterior para las partidas v1. Esta primera versión solo necesita v1; no incluye una migración a un motor futuro.
-
-La aleatoriedad no es criptográfica. Existe un espacio finito de sudokus: la semilla no ofrece una prueba matemática de que nunca pueda repetirse un tablero en cualquier fecha imaginable. La generación produce tableros diferentes en el conjunto de fechas comprobado.
-
-## Racha e historial
-
-La fecha del dispositivo define hoy. Se obtiene con año, mes y día locales, evitando `toISOString().slice(0, 10)`, que puede cambiar el día al convertir a UTC. Para sumar o restar fechas civiles se usa aritmética UTC independiente del horario de verano.
-
-- Resolver un sudoku de **hoy durante hoy** acredita ese día.
-- Resolver varias dificultades el mismo día acredita **un solo día**.
-- Resolver un sudoku antiguo se guarda como completado y aumenta el total de sudokus, pero **no suma, mantiene ni repara** días de racha.
-- Si ayer está acreditado y hoy sigue pendiente, se muestra la racha de ayer mientras aún puedes continuarla.
-- Al llegar la medianoche después de un día omitido, la racha actual pasa a cero. La mejor racha se conserva.
-- Una partida terminada después de medianoche se registra en su fecha de finalización; si el tablero es del día anterior, no acredita racha.
-- Se bloquean fechas futuras en el calendario y en la acción de apertura.
-
-Ejemplo: completaste el 1 y el 3 de octubre en sus respectivos días. Resolver el sudoku del 2 de octubre el día 4 añade una partida al historial, pero no convierte aquellos días en una racha de tres.
-
-El calendario distingue días completados, en curso y sin empezar. Permite elegir cualquier fecha anterior y saltar directamente con un campo de fecha. El listado de partidas permite volver al nivel exacto que jugaste.
-
-## Pinia y localStorage
-
-`src/stores/sudoku.ts` gestiona partidas, preferencias, selección, notas y deshacer. `persistSudoku()` usa `$subscribe()` para persistir **solo** datos duraderos: las partidas y todas las preferencias de configuración.
-
-Clave: `sudoku-diario:v1:state`.
-
-```ts
-interface SavedGame {
-  date: string;
-  difficulty: "easy" | "medium" | "hard";
-  values: number[]; // 81 casillas
-  notes: number[]; // 81 máscaras de candidatos
-  startedAt: string; // instante ISO
-  completedAt: string | null;
-  completedOn: string | null; // fecha civil del dispositivo al completar
-}
-```
-
-La racha se calcula a partir de las partidas cuyo `completedOn === date`; nunca se incrementa un contador manual de racha. El guardado incluye una versión de esquema y validación de fechas, IDs, números y notas. Al abrir una partida se reconstruye el tablero, se protegen sus números iniciales y se comprueba su estado completado. La solución se regenera y no se persiste en el guardado.
-
-El esquema de guardado es ahora `2`; se conserva la misma clave y el generador `v1`. Los guardados anteriores con esquema `1` se migran conservando todas las partidas, con difícil como nivel predeterminado y las ayudas desactivadas. No cambian los tableros diarios anteriores.
-
-Un error de lectura, bloqueo o falta de espacio muestra un aviso y permite seguir jugando. No se sobrescribe un guardado corrupto o incompatible durante esa sesión, salvo que importes explícitamente una copia válida para recuperarlo. El progreso guardado es local al **navegador y origen**: para otro equipo o navegador utiliza la exportación/importación. No hay sincronización automática entre pestañas o dispositivos ni cuentas. El historial está pensado para uso personal, sin protección frente a edición de localStorage o cambios del reloj del dispositivo.
-
-## Exportar e importar progreso
-
-1. Abre **Configuración** en el dispositivo de origen y pulsa **Exportar progreso**.
-2. Guarda el archivo `sudoku-diario-progreso-AAAA-MM-DD.json` y pásalo al otro dispositivo.
-3. Allí, abre **Configuración**, pulsa **Elegir archivo** y selecciona esa exportación.
-4. Se comprueba el formato y cada partida. Revisa el resumen y pulsa **Importar progreso**.
-
-La copia incluye partidas en curso, notas manuales, historial, fechas de finalización y preferencias. La racha se reconstruye con las fechas originales: una importación no convierte un sudoku antiguo en uno resuelto hoy. Las partidas quedan disponibles en Historial y en el calendario.
-
-Se combinan las partidas del archivo con las del navegador. Una partida completada se conserva frente a una versión en curso. Si una misma partida aparece completada en ambos dispositivos, se conserva su crédito de racha original si existe en cualquiera. Si ambas versiones están en curso, se usa la del archivo. También se restauran las preferencias del archivo.
-
-La importación admite archivos JSON de hasta **10 MB**. Verifica formato y versiones, IDs, fechas, los 81 números y máscaras de notas, los números iniciales de cada tablero y las soluciones declaradas como completadas. Esa última comprobación se ejecuta en un Web Worker para mantener la interfaz disponible. Un archivo inválido se rechaza completo, sin cambiar el progreso. Antes de aplicar una copia validada, se comprueba que el navegador puede guardarla; si no puede, la importación no cambia el estado existente. La copia no incluye soluciones ni el historial temporal para deshacer.
+El workflow de [GitHub Actions](.github/workflows/ci.yml) comprueba tests y compilación con Node.js 22 y 24, y ejecuta Playwright con Node.js 24. No publica la web.
 
 ## Controles
 
-- Selecciona una casilla y usa los botones del 1 al 9, o el teclado.
-- Flechas: moverse por el tablero.
-- `N`: activar/desactivar notas. El mismo número alterna su nota.
-- `Supr`, `Retroceso` o `0`: borrar.
-- `Ctrl+Z` o `Cmd+Z`: deshacer hasta 100 movimientos de la partida abierta.
-- Las casillas iniciales son inmutables. Si activas los avisos en configuración, las rojas indican repeticiones visibles, no una comparación secreta con la solución.
-- La partida se completa automáticamente solo cuando todos los números coinciden con la solución única.
-- No hay penalizaciones por errores ni pistas que resuelvan automáticamente casillas.
+| Acción | Tecla |
+| --- | --- |
+| Escribir un número | `1`–`9` |
+| Mover la selección | Flechas |
+| Activar o desactivar notas | `N` |
+| Borrar | `Supr`, `Retroceso` o `0` |
+| Deshacer | `Ctrl+Z` / `Cmd+Z` |
 
-Las notas se conservan tal como las escribes. Solo se retiran notas incompatibles de otras casillas si activas **Borrar notas automáticamente**. Deshacer restaura tanto números como notas. Los movimientos para deshacer no se conservan al recargar, cambiar de partida o importar progreso.
+Resolver el sudoku de hoy durante hoy suma un día a la racha. Resolver uno antiguo lo añade al historial, pero no recupera días de racha.
 
-## Pistas explicadas
+## Datos y fotos
 
-El botón **Pedir una pista** analiza los números visibles sin consultar la solución ni las notas manuales. Prioriza jugadas fáciles de ver: completar el último hueco de una zona o descartar huecos con unos pocos números ya escritos. Primero indica dónde mirar y resalta una zona completa, sin revelar la casilla de destino. **Otra pista** ofrece una orientación más concreta y señala los números que ayudan a descartar. Solo **Ver la respuesta** muestra la casilla, el número y la explicación completa. Volver a pedir una pista reinicia la ayuda desde el primer nivel.
+Las partidas y preferencias se guardan en `localStorage`, por navegador y origen. No hay sincronización automática: utiliza la exportación/importación de Configuración para trasladar tu progreso.
 
-Por ejemplo: «Mira el bloque central. Busca dónde puede ir el 2». La siguiente ayuda puede indicar: «En las columnas 4 y 6 ya hay un 2. Descarta esos huecos del bloque central. ¿Cuál queda libre?». No se muestran listas de candidatos ni una respuesta directa al abrir la pista. Cuando solo quedan deducciones más largas, se avisa antes de ofrecerlas. El motor también admite candidatos únicos, únicos ocultos, candidatos bloqueados, parejas desnudas, parejas ocultas y X-Wing. En la explicación completa, F1 C1 es la primera fila y primera columna.
+Las fotos se procesan en el navegador y no se envían a un servidor de reconocimiento. Tesseract.js descarga desde jsDelivr el worker, el motor WebAssembly y el modelo al usar OCR, por lo que la primera lectura requiere internet. La foto no se guarda; se conservan los números reconocidos y su estado de revisión. Revisa siempre la lectura antes de pedir pistas.
 
-Las pistas señalan dónde mirar y explican el razonamiento; no escriben números, cambian preferencias ni borran notas. Se cierran automáticamente si cambia el tablero. El motor avisa de repeticiones y contradicciones deducibles. No usa búsqueda, adivinación ni una IA generativa: cuando estas técnicas no bastan, lo indica. Parte de que los números introducidos son correctos; no certifica que un tablero externo tenga solución única ni detecta necesariamente todas las contradicciones globales.
+Actualmente no se incluye Google Analytics. El OCR se ha probado con un sudoku impreso en Chromium; su precisión depende de la imagen y no se ha validado con todas las cámaras y fotografías posibles.
 
-## Resolver sudokus externos y leer fotos
+## Publicar tu propia instancia
 
-Abre **Resolver otro sudoku** (icono de escáner en la cabecera o enlace bajo el tablero). La página `#resolver` ofrece un tablero vacío: todas sus casillas se pueden editar con teclado, teclado numérico móvil o los botones. Usa **Pedir una pista** para obtener las mismas explicaciones que en el sudoku diario.
+```sh
+npm ci
+npm run build
+```
 
-El tablero externo se guarda aparte con la clave `sudoku-diario:external:v1`. No altera partidas, rachas ni exportaciones del juego diario. **Deshacer** permite recuperar cambios, borrados e importaciones durante la sesión.
+Sirve **el contenido de `dist/`** desde un hosting estático por HTTP/HTTPS. No necesitas subir `node_modules` y no debes abrir la aplicación con `file://`.
 
-Para importar una foto:
+El dominio oficial es `https://sudokus.crazyjmb.com/`. Si publicas una copia en otro dominio, adapta el canónico, el sitemap, robots y la imagen social siguiendo [SEO.md](SEO.md). Los assets usan rutas relativas; las vistas `#configuracion` y `#resolver` no requieren reglas de reescritura.
 
-1. Pulsa **Hacer foto** en un móvil con cámara o **Elegir imagen** para abrir una foto. En equipos sin captura de cámara, el navegador ofrece un selector de archivos.
-2. Si hace falta, gira la imagen. Marca las esquinas exteriores en este orden: superior izquierda, superior derecha, inferior derecha, inferior izquierda. También puedes usar las flechas y Enter.
-3. Revisa la cuadrícula recortada y pulsa **Leer números**. Puedes cancelar sin cambiar el tablero.
-4. Pulsa **Usar lectura y revisar** para sustituir el tablero externo. Compara todas las casillas con la foto, incluidas las vacías; corrige errores y confirma **He revisado los números** para habilitar las pistas. Las casillas ámbar son dudosas y las rojas tienen números repetidos.
+## Documentación y contribuciones
 
-Se admiten imágenes de hasta 20 MB que el navegador pueda decodificar (por ejemplo JPG, PNG y WebP). El procesamiento corrige la perspectiva, recorta las 81 casillas y reconoce sus cifras con [Tesseract.js](https://github.com/naptha/tesseract.js). Las fotos se procesan localmente y no se guardan; solo se guardan los números y el estado de revisión. El lector se carga al usar OCR y descarga su worker, motor WebAssembly y modelo de idioma desde jsDelivr. La primera lectura requiere internet; la disponibilidad posterior depende de la caché del navegador. El resto de la aplicación no depende del OCR ni de esas descargas.
+- [Documentación técnica](docs/TECHNICAL.md): generador, dificultades, pistas, rachas, persistencia y OCR.
+- [SEO y publicación web](SEO.md): metadatos, sitemap y Search Console.
+- [Contribuir](CONTRIBUTING.md): desarrollo, pruebas y criterios para proponer cambios.
+- [Publicar el repositorio en GitHub](docs/GITHUB.md): pasos para el mantenedor.
+- [Seguridad](SECURITY.md): cómo comunicar una vulnerabilidad.
 
-El OCR funciona mejor con cifras impresas, una cuadrícula completa, buena luz y una foto nítida. Las cifras manuscritas, notas pequeñas, sombras o bordes mal marcados pueden producir errores. La lectura siempre pasa por revisión humana y nunca rellena cifras mediante la solución del sudoku. Se ha probado en Chromium con una imagen de sudoku impreso; falta comprobar una variedad de fotografías y cámaras físicas.
+Puedes comunicar errores y proponer mejoras en Issues. Para cambios amplios, describe primero la propuesta. Conserva la compatibilidad de los tableros y guardados existentes.
 
-## Estructura
+## Autor y licencia
 
-| Archivo                                      | Responsabilidad                                                       |
-| -------------------------------------------- | --------------------------------------------------------------------- |
-| `src/domain/utils/random.ts`                 | Hash, PRNG y barajado determinista.                                   |
-| `src/domain/sudoku/index.ts`                 | Generación, solución, unicidad, evaluación y conflictos.              |
-| `src/domain/sudoku/hints.ts`                 | Deducciones puras y explicaciones de pistas, sin acceder a la solución. |
-| `src/composables/useLogicalHints.ts`         | Petición, resaltado y descarte de pistas cuando cambia el tablero. |
-| `src/infrastructure/ocr/`                   | Lectura de imágenes, corrección de perspectiva y OCR cancelable. |
-| `src/stores/external-sudoku.ts`              | Tablero externo, revisión de OCR, deshacer y guardado independiente. |
-| `src/views/ExternalSolverView.vue`          | Página para resolver un sudoku externo. |
-| `src/components/hints/`, `src/components/solver/` | Explicaciones, tablero editable y flujo de importación por foto. |
-| `src/domain/dates/index.ts`                  | Fechas civiles y formato.                                             |
-| `src/domain/history/index.ts`                | Historial y reglas puras de racha.                                    |
-| `src/domain/storage/index.ts`                | Preferencias, migración, formato de copias y combinación de partidas. |
-| `src/infrastructure/async/backup-async.ts`   | Comprobación de importaciones fuera del hilo de interfaz.             |
-| `src/workers/sudoku.worker.ts`               | Generación y validación de partidas fuera del hilo de interfaz.       |
-| `src/infrastructure/async/generate-async.ts` | Worker, cancelación y errores.                                        |
-| `src/stores/sudoku.ts`                       | Pinia, partidas y persistencia.                                       |
-| `src/components/SudokuBoard.vue`             | Tablero accesible y teclado.                                          |
-| `src/components/DigitPad.vue`                | Números y herramientas.                                               |
-| `src/components/HistoryCalendar.vue`         | Navegación por fechas y estados.                                      |
-| `src/components/HistoryList.vue`             | Partidas por fecha y dificultad.                                      |
-| `src/components/SettingsPanel.vue`           | Configuración y exportación/importación de progreso.                  |
-| `src/components/ui/`                         | Componentes oficiales de shadcn-vue.                                  |
-| `src/App.vue`, `src/style.css`               | Composición y tema adaptable a móvil.                                 |
+Creado por **[Crazyjmb](https://crazyjmb.com/)** como proyecto personal.
 
-## Comprobaciones
+El código propio se distribuye bajo **[PolyForm Noncommercial 1.0.0](LICENSE)**: permite usar, modificar y distribuir para los fines no comerciales contemplados en la licencia, conservando sus términos y los avisos requeridos de [NOTICE](NOTICE). Los usos comerciales requieren autorización expresa de Crazyjmb.
 
-Las pruebas de `npm test` verifican reproducción por semilla, 36 combinaciones de fecha y nivel, soluciones únicas, clasificación lógica, cambios de año y horario de verano, rachas sin crédito retroactivo, completado al cruzar medianoche, protección de números iniciales, deshacer y persistencia tras recarga. También comprueban las ayudas desactivadas por defecto y activables, la conservación de notas manuales, la migración de guardados antiguos, el traslado completo entre dispositivos, la protección de partidas completadas y el rechazo de importaciones inválidas o sin espacio. Las nuevas pruebas cubren deducciones y eliminaciones frente a soluciones conocidas, pares ocultos, X-Wing, contradicciones, invalidación de pistas, aislamiento del tablero externo y geometría de las fotos. `npm run build` verifica los tipos de todos los componentes.
-
-`npm run test:e2e` ejecuta 14 pruebas en Chromium sobre la compilación de producción. Comprueba la edición del diario con teclado, protección de números iniciales, notas, borrado y deshacer, persistencia tras recarga, victoria y racha, exportación de un archivo real e importación en una sesión independiente, conservación de guardados corruptos y separación de partidas por fecha y dificultad. También cubre las pistas del diario, la edición y persistencia externas, navegación y anchura móvil desde 320 px, OCR real de un sudoku impreso, errores de carga del lector y cancelación. Verifica además el SEO sin JavaScript, la autoría, el sitemap, robots y la imagen social. Las pruebas del diario fijan fecha y zona horaria para que sean reproducibles. Requiere tener Chromium instalado (`npx playwright install chromium`); la prueba de OCR necesita conexión para cargar el lector. Playwright inicia el servidor en el puerto 4174. Las capturas y trazas quedan en `test-results/`.
-
-Referencias del stack: [Pinia: estado y suscripciones](https://pinia.vuejs.org/core-concepts/state.html), [shadcn-vue](https://www.shadcn-vue.com/), [Reka UI](https://reka-ui.com/) y [Vite](https://vite.dev/). La atribución de los componentes se incluye en `THIRD_PARTY_NOTICES.md`.
+Es código público con restricción de uso comercial; no se presenta como software de código abierto sin restricciones de uso. Los componentes y dependencias de terceros mantienen sus licencias originales, recogidas en [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
