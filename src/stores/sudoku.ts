@@ -1,12 +1,13 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { todayKey, isDateKey, type DateKey } from '@/domain/dates'
-import { GENERATOR_VERSION, DIFFICULTIES, candidateMask, findConflicts, isSolved, type Difficulty, type SudokuPuzzle } from '@/domain/sudoku'
+import { GENERATOR_VERSION, DIFFICULTIES, candidateMask, findConflicts, isSolved, type Difficulty, type GeneratorVersion, type SudokuPuzzle } from '@/domain/sudoku'
 import { streaks, type SavedGame } from '@/domain/history'
 import { generatePuzzleAsync } from '@/infrastructure/async/generate-async'
 import { DEFAULT_PREFERENCES, STORAGE_SCHEMA, readDurableState, mergeGames, type DurableState, type Preferences, type ProgressBackup } from '@/domain/storage'
 
 export const STORAGE_KEY = `sudoku-diario:${GENERATOR_VERSION}:state`
+export const LEGACY_STORAGE_KEY = 'sudoku-diario:v1:state'
 
 export const useSudokuStore = defineStore('sudoku', () => {
   const games = ref<Record<string, SavedGame>>({})
@@ -45,7 +46,7 @@ export const useSudokuStore = defineStore('sudoku', () => {
   function hydrate(storage?: Pick<Storage, 'getItem'>): void {
     try {
       const target = storage ?? (typeof window !== 'undefined' ? window.localStorage : null)
-      const raw = target?.getItem(STORAGE_KEY)
+      const raw = target?.getItem(STORAGE_KEY) ?? target?.getItem(LEGACY_STORAGE_KEY)
       if (!raw) return
       const restored = readDurableState(JSON.parse(raw))
       games.value = restored.games
@@ -59,7 +60,7 @@ export const useSudokuStore = defineStore('sudoku', () => {
     return { schema: STORAGE_SCHEMA, generator: GENERATOR_VERSION, preferences: preferences.value, games: games.value }
   }
 
-  async function openGame(date: DateKey, level: Difficulty): Promise<void> {
+  async function openGame(date: DateKey, level: Difficulty, version?: GeneratorVersion): Promise<void> {
     refreshToday()
     if (!isDateKey(date) || date > today.value || !DIFFICULTIES.includes(level)) { error.value = 'Elige una fecha de hoy o anterior.'; return }
     generation?.abort()
@@ -69,11 +70,12 @@ export const useSudokuStore = defineStore('sudoku', () => {
     selectedIndex.value = null; notesMode.value = false; undoStack.value = []
     loading.value = true; error.value = ''; puzzle.value = null
     try {
-      const generated = await generatePuzzleAsync(date, level, generation.signal)
+      const selectedVersion = version ?? (games.value[`${GENERATOR_VERSION}:${date}:${level}`] ? GENERATOR_VERSION : games.value[`v1:${date}:${level}`] ? 'v1' : GENERATOR_VERSION)
+      const generated = await generatePuzzleAsync(date, level, generation.signal, selectedVersion)
       if (currentRequest !== request) return
       const previous = games.value[generated.id]
       if (!previous) {
-        games.value[generated.id] = { date, difficulty: level, values: [...generated.givens], notes: Array<number>(81).fill(0), startedAt: new Date().toISOString(), completedAt: null, completedOn: null }
+        games.value[generated.id] = { version: generated.version, date, difficulty: level, values: [...generated.givens], notes: Array<number>(81).fill(0), startedAt: new Date().toISOString(), completedAt: null, completedOn: null }
       } else {
         // Protect immutable clues and normalize invalid completion records on reopening.
         previous.values = previous.values.map((value, i) => generated.givens[i] || value)

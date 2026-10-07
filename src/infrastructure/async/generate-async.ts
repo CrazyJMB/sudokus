@@ -1,9 +1,9 @@
-import { generateSudoku, type Difficulty, type SudokuPuzzle } from '../../domain/sudoku'
+import { generatePuzzleForVersion, GENERATOR_VERSION, type Difficulty, type GeneratorVersion, type SudokuPuzzle } from '../../domain/sudoku'
 import type { DateKey } from '../../domain/dates'
 
 /** Keep the UI responsive during uniqueness checks. Node/tests use the same pure engine. */
-export function generatePuzzleAsync(date: DateKey, difficulty: Difficulty, signal?: AbortSignal): Promise<SudokuPuzzle> {
-  if (typeof Worker === 'undefined') return Promise.resolve(generateSudoku(date, difficulty))
+export function generatePuzzleAsync(date: DateKey, difficulty: Difficulty, signal?: AbortSignal, version: GeneratorVersion = GENERATOR_VERSION): Promise<SudokuPuzzle> {
+  if (typeof Worker === 'undefined') return Promise.resolve(generatePuzzleForVersion(date, difficulty, version))
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('../../workers/sudoku.worker.ts', import.meta.url), { type: 'module' })
     const stop = () => { clearTimeout(timeout); worker.terminate(); signal?.removeEventListener('abort', abort) }
@@ -17,6 +17,6 @@ export function generatePuzzleAsync(date: DateKey, difficulty: Difficulty, signa
     worker.onerror = () => { stop(); reject(new Error('No se pudo iniciar el generador de sudokus.')) }
     signal?.addEventListener('abort', abort, { once: true })
     if (signal?.aborted) { abort(); return }
-    worker.postMessage({ requestId: 1, date, difficulty })
+    worker.postMessage({ requestId: 1, date, difficulty, version })
   })
 }

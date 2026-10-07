@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test, type Page } from '@playwright/test'
-import { generateSudoku } from '../src/domain/sudoku'
+import { generateSudoku, generatePuzzleForVersion, GENERATOR_VERSION } from '../src/domain/sudoku'
 import { DEFAULT_PREFERENCES, type DurableState } from '../src/domain/storage'
 
-const storageKey = 'sudoku-diario:v1:state'
+const storageKey = `sudoku-diario:${GENERATOR_VERSION}:state`
 const today = '2026-10-06'
 
 test.use({ timezoneId: 'Atlantic/Canary' })
@@ -14,6 +14,33 @@ test.beforeEach(async ({ page }) => {
 async function savedState(page: Page): Promise<DurableState> {
   return page.evaluate(key => JSON.parse(localStorage.getItem(key)!), storageKey)
 }
+
+test('recupera el tablero v1 original y guarda las partidas nuevas con v2', async ({ page }) => {
+  const puzzle = generatePuzzleForVersion(today, 'hard', 'v1')
+  const values = [...puzzle.givens]
+  const empty = values.findIndex(value => value === 0)
+  values[empty] = puzzle.solution[empty]!
+  const legacy = JSON.stringify({ schema: 2, generator: 'v1', preferences: DEFAULT_PREFERENCES, games: {
+    [puzzle.id]: { date: today, difficulty: 'hard', values, notes: Array(81).fill(0), startedAt: `${today}T10:00:00.000Z`, completedAt: null, completedOn: null },
+  } })
+  await page.addInitScript(value => {
+    if (!localStorage.getItem('sudoku-diario:v1:state')) localStorage.setItem('sudoku-diario:v1:state', value)
+  }, legacy)
+  await page.goto('/')
+  const cells = page.locator('.workspace [role="gridcell"]')
+  await expect(cells).toHaveCount(81)
+  await expect(cells.nth(empty).locator('.cell-number')).toHaveText(String(values[empty]))
+  expect((await savedState(page)).games[puzzle.id]!.values).toEqual(values)
+  await page.getByRole('combobox', { name: 'Dificultad', exact: true }).click()
+  await page.getByRole('option', { name: 'Fácil', exact: true }).click()
+  await expect(page.locator('.board-meta')).toContainText('Fácil')
+  await expect(cells).toHaveCount(81)
+  expect(Object.keys((await savedState(page)).games)).toEqual(expect.arrayContaining([puzzle.id, `v2:${today}:easy`]))
+  expect(await page.evaluate(() => localStorage.getItem('sudoku-diario:v1:state'))).toBe(legacy)
+  await page.reload()
+  await expect(cells.nth(empty).locator('.cell-number')).toHaveText(String(values[empty]))
+  expect((await savedState(page)).games[puzzle.id]!.version).toBe('v1')
+})
 
 test('edita el diario con teclado, protege las pistas y recupera números y notas al recargar', async ({ page }) => {
   await page.goto('/')

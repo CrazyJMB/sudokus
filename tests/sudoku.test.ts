@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countSolutions, DIFFICULTIES, findConflicts, generateSudoku, isSolved, rateSudoku, solveSudoku, UNITS } from '../src/domain/sudoku'
+import { analyzeSudoku, candidateMask, countSolutions, DIFFICULTIES, DIFFICULTY_PROFILES, findConflicts, generateSudoku, isSolved, rateSudoku, searchSolutions, solveSudoku, UNITS } from '../src/domain/sudoku'
 import { addDays, isDateKey, todayKey } from '../src/domain/dates'
 
 describe('motor diario', () => {
@@ -20,6 +20,20 @@ describe('motor diario', () => {
       slowest = Math.max(slowest, performance.now() - start)
       expect(countSolutions(puzzle.givens), `${date} ${difficulty}`).toBe(1)
       expect(rateSudoku(puzzle.givens)).toBe(expected[difficulty])
+      const analysis = analyzeSudoku(puzzle.givens)
+      expect(analysis).toEqual(puzzle.analysis)
+      expect(analysis.valid).toBe(true)
+      expect(analysis.solved).toBe(true)
+      expect(analysis.board).toEqual(puzzle.solution)
+      const profile = DIFFICULTY_PROFILES[difficulty]
+      expect(analysis.maxRank).toBeGreaterThanOrEqual(profile.minimumRank)
+      expect(analysis.maxRank).toBeLessThanOrEqual(profile.maximumRank)
+      expect(puzzle.clues).toBeGreaterThanOrEqual(profile.minimumClues)
+      expect(puzzle.clues).toBeLessThanOrEqual(profile.targetClues)
+      for (const step of analysis.steps) {
+        for (const placement of step.placements) expect(placement.digit).toBe(puzzle.solution[placement.index])
+        for (const removal of step.eliminations) expect(removal.digits).not.toContain(puzzle.solution[removal.index])
+      }
       expect(solveSudoku(puzzle.givens)).toEqual(puzzle.solution)
       expect(puzzle.givens.every((v, i) => v === 0 || v === puzzle.solution[i])).toBe(true)
       for (const unit of UNITS) expect(unit.map(i => puzzle.solution[i]).sort()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -36,6 +50,36 @@ describe('motor diario', () => {
     const invalid = Array<number>(81).fill(0); invalid[0] = invalid[1] = 1
     expect(countSolutions(invalid)).toBe(0)
     expect(findConflicts(invalid)).toEqual(new Set([0, 1]))
+    expect(analyzeSudoku(invalid)).toMatchObject({ valid: false, solved: false })
+    expect(() => generateSudoku('2026-10-02', 'invalid' as 'easy')).toThrow('Invalid difficulty')
+    for (const limit of [0, -1, 1.5, NaN, Infinity]) expect(() => countSolutions(Array(81).fill(0), limit)).toThrow()
+    for (const index of [-1, 81, 0.5, NaN]) expect(() => candidateMask(Array(81).fill(0), index)).toThrow()
+  })
+
+  it('limita la búsqueda, no modifica la entrada y distingue un bloqueo lógico de una solución', () => {
+    const empty = Object.freeze(Array<number>(81).fill(0))
+    expect(analyzeSudoku(empty)).toMatchObject({ valid: true, solved: false, steps: [] })
+    expect(countSolutions(empty)).toBe(2)
+    const solutions = searchSolutions(empty)
+    expect(solutions).toHaveLength(2)
+    expect(solutions[0]).not.toEqual(solutions[1])
+    expect(isSolved(solutions[0]!)).toBe(true)
+    expect(isSolved(empty)).toBe(false)
+    expect(isSolved(Array(81))).toBe(false)
+    expect(isSolved(Array(81), { solution: solutions[0]! })).toBe(false)
+  })
+
+  it('usa una plantilla difícil determinista y verificada si se agotan los intentos', () => {
+    const attempts = DIFFICULTY_PROFILES.hard.maximumAttempts
+    try {
+      DIFFICULTY_PROFILES.hard.maximumAttempts = 0
+      const puzzle = generateSudoku('2026-10-06', 'hard')
+      expect(generateSudoku('2026-10-06', 'hard')).toEqual(puzzle)
+      expect(puzzle.rating).toBe('advanced')
+      expect(puzzle.analysis.solved).toBe(true)
+      expect(puzzle.analysis.board).toEqual(puzzle.solution)
+      expect(countSolutions(puzzle.givens)).toBe(1)
+    } finally { DIFFICULTY_PROFILES.hard.maximumAttempts = attempts }
   })
 })
 

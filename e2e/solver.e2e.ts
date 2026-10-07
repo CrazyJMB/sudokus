@@ -130,7 +130,7 @@ test('lee una foto con OCR real y exige revisión antes de pedir pistas', async 
   await page.getByRole('button', { name: 'Pedir una pista', exact: true }).click()
   await expect(page.getByRole('region', { name: 'Pista razonada' })).toBeVisible()
   expect(photoUploads).toEqual([])
-  expect(await page.evaluate(() => localStorage.getItem('sudoku-diario:v1:state'))).toBeNull()
+  expect(await page.evaluate(() => localStorage.getItem('sudoku-diario:v2:state'))).toBeNull()
   await page.screenshot({ path: 'test-results/solver-ocr.png', fullPage: true })
 })
 

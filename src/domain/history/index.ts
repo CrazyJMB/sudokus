@@ -1,7 +1,8 @@
 import { addDays, type DateKey } from '../dates'
-import type { Difficulty, Grid } from '../sudoku'
+import type { Difficulty, GeneratorVersion, Grid } from '../sudoku'
 
 export interface SavedGame {
+  version?: GeneratorVersion // absent only in older saves; inferred from the puzzle ID
   date: DateKey
   difficulty: Difficulty
   values: Grid

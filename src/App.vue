@@ -44,7 +44,7 @@ function openSettings() { view.value = '#configuracion'; window.location.hash = 
 function openSolver() { view.value = '#resolver'; window.location.hash = 'resolver' }
 function syncView() { view.value = window.location.hash }
 function openDate(date: DateKey) { historyOpen.value = false; returnToGame(); void store.openGame(date, store.difficulty) }
-function openSaved(game: SavedGame) { historyOpen.value = false; returnToGame(); void store.openGame(game.date, game.difficulty) }
+function openSaved(game: SavedGame) { historyOpen.value = false; returnToGame(); void store.openGame(game.date, game.difficulty, game.version) }
 function changeDifficulty(value: unknown) {
   if (DIFFICULTIES.includes(value as Difficulty)) void store.openGame(store.selectedDate, value as Difficulty)
 }

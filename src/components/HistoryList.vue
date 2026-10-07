@@ -14,7 +14,7 @@ const games = computed(() => Object.values(store.games).sort((a, b) => b.date.lo
 
 <template>
   <div v-if="games.length" class="history-list">
-    <Button v-for="game in games" :key="`${game.date}:${game.difficulty}`" variant="ghost" class="history-item" :disabled="store.loading" @click="emit('choose', game)">
+    <Button v-for="game in games" :key="`${game.version}:${game.date}:${game.difficulty}`" variant="ghost" class="history-item" :disabled="store.loading" @click="emit('choose', game)">
       <span class="history-item-icon" :class="{ complete: game.completedAt }"><Check v-if="game.completedAt" :size="18" /><Clock3 v-else :size="18" /></span>
       <span class="history-item-text"><strong>{{ formatDate(game.date, { day: 'numeric', month: 'long' }) }}</strong><span>{{ game.completedAt ? 'Completado' : 'En curso' }} · {{ game.date.slice(0, 4) }}<Flame v-if="game.completedAt && game.completedOn === game.date" :size="13" aria-label="Cuenta en la racha" /></span></span>
       <Badge variant="outline">{{ DIFFICULTY_LABELS[game.difficulty] }}</Badge>

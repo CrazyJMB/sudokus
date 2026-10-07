@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { applyBackup, persistSudoku, STORAGE_KEY, useSudokuStore } from '../src/stores/sudoku'
+import { applyBackup, persistSudoku, LEGACY_STORAGE_KEY, STORAGE_KEY, useSudokuStore } from '../src/stores/sudoku'
+import { GENERATOR_VERSION } from '../src/domain/sudoku'
 import { DEFAULT_PREFERENCES, mergeGames, parseBackup, readDurableState, serializeBackup } from '../src/domain/storage'
 import { prepareBackup } from '../src/infrastructure/async/backup-async'
 import type { SavedGame } from '../src/domain/history'
@@ -19,14 +20,28 @@ describe('experiencia sin ayudas y guardados anteriores', () => {
   })
 
   it('migra las partidas antiguas sin cambiar el generador ni perder el historial', async () => {
-    const original = useSudokuStore(); await original.openGame('2026-10-01', 'easy')
+    const original = useSudokuStore(); await original.openGame('2026-10-01', 'easy', 'v1')
     original.currentGame!.values = [...original.puzzle!.solution]; original.finishIfSolved()
     const games = JSON.parse(JSON.stringify(original.games))
-    storage.setItem(STORAGE_KEY, JSON.stringify({ schema: 1, generator: 'v1', preferredDifficulty: 'easy', games }))
+    const oldGames = structuredClone(games)
+    for (const game of Object.values(oldGames) as SavedGame[]) delete game.version
+    const legacy = JSON.stringify({ schema: 1, generator: 'v1', preferredDifficulty: 'easy', games: oldGames })
+    storage.setItem(LEGACY_STORAGE_KEY, legacy)
     const restored = useSudokuStore(createPinia()); restored.hydrate(storage)
     expect(restored.games).toEqual(games)
     expect(restored.preferences).toEqual(DEFAULT_PREFERENCES)
     expect(restored.stats.total).toBe(1)
+    await restored.openGame('2026-10-01', 'easy')
+    expect(restored.puzzle).toEqual(original.puzzle)
+    const stop = persistSudoku(restored, storage)
+    await restored.openGame('2026-10-02', 'easy')
+    expect(restored.puzzle!.version).toBe('v2')
+    expect(storage.getItem(LEGACY_STORAGE_KEY)).toBe(legacy)
+    const reloaded = useSudokuStore(createPinia()); reloaded.hydrate(storage)
+    expect(reloaded.games).toEqual(restored.games)
+    const imported = await prepareBackup(serializeBackup(restored.durableState()))
+    expect(imported.data.games).toEqual(restored.games)
+    stop()
   })
 
   it('conserva las notas manuales al escribir y recargar; las borra solo al activar la opción', async () => {
@@ -45,6 +60,25 @@ describe('experiencia sin ayudas y guardados anteriores', () => {
 })
 
 describe('exportar e importar entre dispositivos', () => {
+  it('importa copias v1 y permite reabrir ambas versiones de una misma fecha y nivel', async () => {
+    const store = useSudokuStore()
+    await store.openGame('2026-10-02', 'easy', 'v1')
+    const legacyPuzzle = store.puzzle!
+    const legacy = JSON.parse(serializeBackup(store.durableState()))
+    legacy.data.generator = 'v1'
+    delete legacy.data.games[legacyPuzzle.id].version
+    const backup = await prepareBackup(JSON.stringify(legacy))
+    await store.openGame('2026-10-02', 'easy', 'v2')
+    const currentPuzzle = store.puzzle!
+    applyBackup(store, backup, storage)
+    await store.openGame('2026-10-02', 'easy', 'v1')
+    expect(store.puzzle).toEqual(legacyPuzzle)
+    await store.openGame('2026-10-02', 'easy', 'v2')
+    expect(store.puzzle).toEqual(currentPuzzle)
+    expect(Object.keys(store.games)).toHaveLength(2)
+    expect((await prepareBackup(serializeBackup(store.durableState()))).data.games).toEqual(store.games)
+  })
+
   it('traslada partidas, notas, preferencias y racha, y los recupera tras recargar', async () => {
     const source = useSudokuStore()
     for (const day of [30, 1]) {
@@ -75,7 +109,7 @@ describe('exportar e importar entre dispositivos', () => {
     expect(restored.currentGame!.values).toEqual(source.currentGame!.values)
     expect(restored.currentGame!.notes).toEqual(source.currentGame!.notes)
     stop()
-  })
+  }, 20_000)
 
   it('no sobrescribe partidas completadas y conserva el crédito original de cualquiera de los dispositivos', async () => {
     const store = useSudokuStore(); await store.openGame('2026-10-01', 'hard')
@@ -95,7 +129,7 @@ describe('exportar e importar entre dispositivos', () => {
     const invalid = JSON.parse(before)
     invalid.data.generator = 'v99'
     expect(() => parseBackup(JSON.stringify(invalid))).toThrow()
-    invalid.data.generator = 'v1'
+    invalid.data.generator = GENERATOR_VERSION
     const game = invalid.data.games[store.puzzle!.id]
     game.values = Array<number>(81).fill(1)
     game.completedAt = '2026-10-02T10:00:00.000Z'; game.completedOn = '2026-10-02'

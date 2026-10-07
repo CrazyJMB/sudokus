@@ -1,4 +1,6 @@
 /** Stable FNV-1a hash + Mulberry32. No Math.random(), locale or current time. */
+export type Random = () => number
+
 export function hashSeed(text: string): number {
   let hash = 0x811c9dc5
   for (let i = 0; i < text.length; i++) {

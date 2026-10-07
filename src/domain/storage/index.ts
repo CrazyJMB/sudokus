@@ -1,5 +1,5 @@
 import { isDateKey } from '../dates'
-import { GENERATOR_VERSION, DIFFICULTIES, ALL_DIGITS, generateSudoku, isSolved, puzzleId, type Difficulty } from '../sudoku'
+import { GENERATOR_VERSION, DIFFICULTIES, ALL_DIGITS, generatePuzzleForVersion, isGeneratorVersion, puzzleVersion, isSolved, type Difficulty } from '../sudoku'
 import type { SavedGame } from '../history'
 
 export const STORAGE_SCHEMA = 2
@@ -69,18 +69,20 @@ function readPreferences(value: unknown, strict: boolean): Preferences {
 
 /** Read old local saves without losing games. Imports reject any malformed record. */
 export function readDurableState(value: unknown, strict = false): DurableState {
-  if (!record(value) || ![1, STORAGE_SCHEMA].includes(value.schema as number) || value.generator !== GENERATOR_VERSION || !record(value.games)) {
+  if (!record(value) || ![1, STORAGE_SCHEMA].includes(value.schema as number) || !isGeneratorVersion(value.generator) || !record(value.games)) {
     throw new Error('El guardado tiene un formato o una versión incompatible.')
   }
   const games: Record<string, SavedGame> = {}
   for (const [id, item] of Object.entries(value.games)) {
-    if (!record(item) || !isDateKey(item.date) || !DIFFICULTIES.includes(item.difficulty as Difficulty) || !numberArray(item.values) || !numberArray(item.notes, true) || !timestamp(item.startedAt) || id !== puzzleId(item.date, item.difficulty as Difficulty)) {
+    const version = id.split(':')[0]
+    if (!record(item) || !isDateKey(item.date) || !DIFFICULTIES.includes(item.difficulty as Difficulty) || !numberArray(item.values) || !numberArray(item.notes, true) || !timestamp(item.startedAt) || !isGeneratorVersion(version) || id !== `${version}:${item.date}:${item.difficulty}` || (value.generator === 'v1' && version !== 'v1') || (item.version !== undefined && item.version !== version)) {
       if (strict) throw new Error('El archivo contiene una partida no válida. No se ha importado nada.')
       continue
     }
     const completed = timestamp(item.completedAt) && isDateKey(item.completedOn) && item.completedOn >= item.date && !item.values.includes(0)
     if (strict && !completed && (item.completedAt !== null || item.completedOn !== null)) throw new Error('Una partida contiene una finalización no válida.')
     games[id] = {
+      version,
       date: item.date, difficulty: item.difficulty as Difficulty,
       values: [...item.values], notes: [...item.notes], startedAt: item.startedAt,
       completedAt: completed ? item.completedAt as string : null,
@@ -109,9 +111,11 @@ export function parseBackup(text: string): ProgressBackup {
 
 /** Also validate the actual daily givens and completed solutions, before changing any data. */
 export function validateImportedGames(games: Record<string, SavedGame>, onProgress?: (done: number, total: number) => void): void {
-  const entries = Object.values(games)
-  for (const [index, game] of entries.entries()) {
-    const puzzle = generateSudoku(game.date, game.difficulty)
+  const entries = Object.entries(games)
+  for (const [index, [id, game]] of entries.entries()) {
+    const version = puzzleVersion(id)
+    if (id !== `${version}:${game.date}:${game.difficulty}` || (game.version !== undefined && game.version !== version)) throw new Error('Identificador de partida no válido.')
+    const puzzle = generatePuzzleForVersion(game.date, game.difficulty, version)
     if (!puzzle.givens.every((value, i) => value === 0 || game.values[i] === value) || game.completedAt && !isSolved(game.values, puzzle)) {
       throw new Error(`La partida del ${game.date} contiene números iniciales o una solución incorrectos. No se ha importado nada.`)
     }

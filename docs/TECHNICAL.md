@@ -34,12 +34,13 @@ const puzzle = generateSudoku("2026-10-02", "medium");
 // puzzle.givens: 81 números; 0 representa una casilla vacía.
 // puzzle.solution: los 81 números de su única solución.
 // puzzle.clues, puzzle.rating, puzzle.date, puzzle.difficulty, puzzle.id.
+// puzzle.analysis: técnicas utilizadas, pasos, rango y resolución lógica.
 ```
 
 La semilla se obtiene de:
 
 ```text
-sudoku-diario:v1:2026-10-02:medium
+v2:v2:2026-10-02:medium:attempt:0
 ```
 
 1. Se valida la fecha ISO `AAAA-MM-DD`.
@@ -47,7 +48,7 @@ sudoku-diario:v1:2026-10-02:medium
 3. Mulberry32 produce una secuencia pseudoaleatoria reproducible.
 4. Un solucionador de restricciones con selección de la casilla más restringida crea una cuadrícula completa. El orden de sus candidatos se baraja con esa secuencia.
 5. Se retiran números en un orden barajado. Solo se acepta una retirada cuando el tablero sigue teniendo exactamente **una** solución; la búsqueda se detiene al encontrar dos.
-6. Un evaluador lógico clasifica el tablero y la generación se detiene al cumplir los requisitos del nivel.
+6. Cada retirada también debe permitir una resolución lógica completa dentro del rango máximo del nivel. El análisis registra colocaciones, eliminaciones y técnicas; la generación se detiene al alcanzar el rango y el número de pistas del perfil. Cada intento tiene su propia semilla determinista.
 
 No se usa `Math.random()` ni una fecha implícita dentro del motor. La misma versión, fecha y dificultad reconstruye los mismos números en todos los equipos. La dificultad forma parte de la semilla: cada nivel tiene su propio tablero y progreso.
 
@@ -55,17 +56,19 @@ No se usa `Math.random()` ni una fecha implícita dentro del motor. La misma ver
 
 | Nivel   | Requisito lógico                                                                                                        | Condición adicional                 |
 | ------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| Fácil   | Se resuelve con candidatos únicos y únicos ocultos.                                                                     | Se detiene en 39 números iniciales. |
-| Media   | Se resuelve incorporando candidatos bloqueados o pares desnudos, y el evaluador necesita al menos una de esas técnicas. | 33 números iniciales o menos.       |
-| Difícil | El evaluador de esos métodos no puede completarlo; requiere otras técnicas o búsqueda.                                  | 28 números iniciales o menos.       |
+| Fácil   | Candidatos únicos y únicos ocultos (rangos 1–2). | Entre 38 y 44 números iniciales. |
+| Media   | Necesita candidatos bloqueados o pares desnudos/ocultos (rangos 3–4). | Entre 30 y 36 números iniciales. |
+| Difícil | Necesita triples desnudos/ocultos o X-Wing (rangos 5–6). | Entre 24 y 31 números iniciales. |
 
-La dificultad es una clasificación práctica, no una escala universal ni una garantía de una técnica avanzada concreta. **No depende únicamente del número de huecos.** En el nivel medio se rechazan retiradas que superen los métodos intermedios. Se permiten hasta 100 intentos deterministas para encontrar el nivel pedido; si se agotan, aparece un error recuperable, sin devolver un tablero de dificultad incorrecta.
+La dificultad es una clasificación práctica, basada en la técnica más avanzada utilizada por este solver; no es una escala universal. **No depende únicamente del número de huecos.** Los presupuestos son 80 intentos en fácil, 120 en media y 40 en difícil. Si difícil agota los intentos, se prueba una plantilla avanzada transformada según la fecha, verificando de nuevo su unicidad y rango. Como último recurso, el generador recibido devuelve el mejor candidato lógico y único encontrado: puede quedar por debajo del rango solicitado o fuera del objetivo de pistas. `difficulty` conserva el nivel solicitado; `rating` y `analysis` describen el resultado real. Solo se lanza un error si no existe ningún candidato válido.
 
 El cálculo se ejecuta en un **Web Worker** para mantener la interfaz disponible. Cambiar de partida cancela el cálculo anterior. En Node, el mismo motor puro funciona sin Worker.
 
 ### Versionado: conservar tableros antiguos
 
-`GENERATOR_VERSION = 'v1'` forma parte de la semilla, de cada ID y de la clave de guardado. **No cambies el algoritmo v1 una vez publicado.** Cualquier cambio que altere los tableros debe introducir una versión nueva y conservar el generador anterior para las partidas v1. Esta primera versión solo necesita v1; no incluye una migración a un motor futuro.
+`GENERATOR_VERSION = 'v2'` forma parte de la semilla, de cada ID y de la clave de guardado. Las partidas nuevas usan v2. El algoritmo v1 permanece intacto en `src/domain/sudoku/legacy-v1.ts`; `generatePuzzleForVersion` permite reconstruir cualquiera de las dos versiones. **No cambies un algoritmo publicado sin introducir una nueva versión.**
+
+Al abrir una fecha y nivel se retoma su partida v2 si existe; en su defecto, una partida v1 ya guardada. Si no existe ninguna, se genera v2. El historial conserva la versión de cada registro y puede reabrir ambas versiones de una misma fecha y nivel. Las importaciones validan los números iniciales y la solución con el motor indicado por cada ID.
 
 La aleatoriedad no es criptográfica. Existe un espacio finito de sudokus: la semilla no ofrece una prueba matemática de que nunca pueda repetirse un tablero en cualquier fecha imaginable. La generación produce tableros diferentes en el conjunto de fechas comprobado.
 
@@ -89,10 +92,11 @@ El calendario distingue días completados, en curso y sin empezar. Permite elegi
 
 `src/stores/sudoku.ts` gestiona partidas, preferencias, selección, notas y deshacer. `persistSudoku()` usa `$subscribe()` para persistir **solo** datos duraderos: las partidas y todas las preferencias de configuración.
 
-Clave: `sudoku-diario:v1:state`.
+Clave: `sudoku-diario:v2:state`. Si aún no existe, se lee `sudoku-diario:v1:state` y se migra en memoria. Los siguientes guardados usan la clave v2; la copia v1 no se borra ni se modifica. Un guardado v2 corrupto no se sustituye silenciosamente por el antiguo.
 
 ```ts
 interface SavedGame {
+  version?: "v1" | "v2"; // se deduce del ID al leer guardados antiguos
   date: string;
   difficulty: "easy" | "medium" | "hard";
   values: number[]; // 81 casillas
@@ -105,7 +109,7 @@ interface SavedGame {
 
 La racha se calcula a partir de las partidas cuyo `completedOn === date`; nunca se incrementa un contador manual de racha. El guardado incluye una versión de esquema y validación de fechas, IDs, números y notas. Al abrir una partida se reconstruye el tablero, se protegen sus números iniciales y se comprueba su estado completado. La solución se regenera y no se persiste en el guardado.
 
-El esquema de guardado es ahora `2`; se conserva la misma clave y el generador `v1`. Los guardados anteriores con esquema `1` se migran conservando todas las partidas, con difícil como nivel predeterminado y las ayudas desactivadas. No cambian los tableros diarios anteriores.
+El esquema de guardado sigue siendo `2`. Se aceptan guardados y copias de los motores v1 y v2; los nuevos archivos indican v2 y pueden contener IDs de ambas versiones. Los guardados anteriores con esquema `1` se migran conservando todas las partidas, con difícil como nivel predeterminado y las ayudas desactivadas. No cambian los tableros diarios anteriores.
 
 Un error de lectura, bloqueo o falta de espacio muestra un aviso y permite seguir jugando. No se sobrescribe un guardado corrupto o incompatible durante esa sesión, salvo que importes explícitamente una copia válida para recuperarlo. El progreso guardado es local al **navegador y origen**: para otro equipo o navegador utiliza la exportación/importación. No hay sincronización automática entre pestañas o dispositivos ni cuentas. El historial está pensado para uso personal, sin protección frente a edición de localStorage o cambios del reloj del dispositivo.
 
@@ -165,7 +169,10 @@ El OCR funciona mejor con cifras impresas, una cuadrícula completa, buena luz y
 | Archivo                                      | Responsabilidad                                                       |
 | -------------------------------------------- | --------------------------------------------------------------------- |
 | `src/domain/utils/random.ts`                 | Hash, PRNG y barajado determinista.                                   |
-| `src/domain/sudoku/index.ts`                 | Generación, solución, unicidad, evaluación y conflictos.              |
+| `src/domain/sudoku/index.ts`                 | Fachada pública, también accesible desde `src/lib/sudoku.ts`. |
+| `src/domain/sudoku/generator.ts`             | Generación v2, perfiles lógicos y alternativas deterministas. |
+| `src/domain/sudoku/solver.ts`, `board.ts`, `types.ts` | Resolución lógica, unicidad, validación, candidatos y trazas tipadas. |
+| `src/domain/sudoku/versions.ts`, `legacy-v1.ts` | Selección de motor y reproducción intacta de tableros v1. |
 | `src/domain/sudoku/hints.ts`                 | Deducciones puras y explicaciones de pistas, sin acceder a la solución. |
 | `src/composables/useLogicalHints.ts`         | Petición, resaltado y descarte de pistas cuando cambia el tablero. |
 | `src/infrastructure/ocr/`                   | Lectura de imágenes, corrección de perspectiva y OCR cancelable. |
@@ -189,8 +196,8 @@ El OCR funciona mejor con cifras impresas, una cuadrícula completa, buena luz y
 
 ## Comprobaciones
 
-Las pruebas de `npm test` verifican reproducción por semilla, 36 combinaciones de fecha y nivel, soluciones únicas, clasificación lógica, cambios de año y horario de verano, rachas sin crédito retroactivo, completado al cruzar medianoche, protección de números iniciales, deshacer y persistencia tras recarga. También comprueban las ayudas desactivadas por defecto y activables, la conservación de notas manuales, la migración de guardados antiguos, el traslado completo entre dispositivos, la protección de partidas completadas y el rechazo de importaciones inválidas o sin espacio. Las nuevas pruebas cubren deducciones y eliminaciones frente a soluciones conocidas, pares ocultos, X-Wing, contradicciones, invalidación de pistas, aislamiento del tablero externo y geometría de las fotos. `npm run build` verifica los tipos de todos los componentes.
+Las pruebas de `npm test` verifican reproducción por semilla, 36 combinaciones de fecha y nivel, soluciones únicas, clasificación y trazas lógicas, plantilla difícil de reserva, cambios de año y horario de verano, rachas sin crédito retroactivo, completado al cruzar medianoche, protección de números iniciales, deshacer y persistencia tras recarga. También comprueban las ayudas desactivadas por defecto y activables, la conservación de notas manuales, la migración de guardados v1, la reapertura e importación de ambas versiones, el traslado completo entre dispositivos, la protección de partidas completadas y el rechazo de importaciones inválidas o sin espacio. Las nuevas pruebas cubren deducciones y eliminaciones frente a soluciones conocidas, pares ocultos, X-Wing, contradicciones, invalidación de pistas, aislamiento del tablero externo y geometría de las fotos. `npm run build` verifica los tipos de todos los componentes.
 
-`npm run test:e2e` ejecuta 14 pruebas en Chromium sobre la compilación de producción. Comprueba la edición del diario con teclado, protección de números iniciales, notas, borrado y deshacer, persistencia tras recarga, victoria y racha, exportación de un archivo real e importación en una sesión independiente, conservación de guardados corruptos y separación de partidas por fecha y dificultad. También cubre las pistas del diario, la edición y persistencia externas, navegación y anchura móvil desde 320 px, OCR real de un sudoku impreso, errores de carga del lector y cancelación. Verifica además el SEO sin JavaScript, la autoría, el sitemap, robots y la imagen social. Las pruebas del diario fijan fecha y zona horaria para que sean reproducibles. Requiere tener Chromium instalado (`npx playwright install chromium`); la prueba de OCR necesita conexión para cargar el lector. Playwright inicia el servidor en el puerto 4174. Las capturas y trazas quedan en `test-results/`.
+`npm run test:e2e` ejecuta 15 pruebas en Chromium sobre la compilación de producción. Comprueba la edición del diario con teclado, protección de números iniciales, notas, borrado y deshacer, persistencia tras recarga, victoria y racha, exportación de un archivo real e importación en una sesión independiente, conservación de guardados corruptos y separación de partidas por fecha y dificultad. También cubre las pistas del diario, la edición y persistencia externas, navegación y anchura móvil desde 320 px, OCR real de un sudoku impreso, errores de carga del lector y cancelación. Verifica además el SEO sin JavaScript, la autoría, el sitemap, robots y la imagen social. Las pruebas del diario fijan fecha y zona horaria para que sean reproducibles. Requiere tener Chromium instalado (`npx playwright install chromium`); la prueba de OCR necesita conexión para cargar el lector. Playwright inicia el servidor en el puerto 4174. Las capturas y trazas quedan en `test-results/`.
 
 Referencias del stack: [Pinia: estado y suscripciones](https://pinia.vuejs.org/core-concepts/state.html), [shadcn-vue](https://www.shadcn-vue.com/), [Reka UI](https://reka-ui.com/) y [Vite](https://vite.dev/). La atribución de los componentes se incluye en `THIRD_PARTY_NOTICES.md`.
