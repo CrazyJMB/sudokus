@@ -16,7 +16,7 @@ import HintPanel from '@/components/hints/HintPanel.vue'
 import { useLogicalHints } from '@/composables/useLogicalHints'
 import { useSudokuStore } from '@/stores/sudoku'
 import { formatDate, type DateKey } from '@/domain/dates'
-import { DIFFICULTIES, DIFFICULTY_LABELS, type Difficulty } from '@/domain/sudoku'
+import { DIFFICULTIES, DIFFICULTY_LABELS, type Difficulty, type Rating } from '@/domain/sudoku'
 import type { SavedGame } from '@/domain/history'
 
 const store = useSudokuStore()
@@ -35,6 +35,8 @@ const dateLabel = computed(() => formatDate(store.selectedDate, { weekday: 'long
 const solvedToday = computed(() => Object.values(store.games).some(g => g.date === store.today && g.completedAt && g.completedOn === g.date))
 const earnedStreak = computed(() => store.currentGame?.completedOn === store.currentGame?.date)
 const techniques = { easy: 'Candidatos únicos y únicos ocultos.', medium: 'Añade pares y candidatos bloqueados.', hard: 'Requiere técnicas más avanzadas.' }
+const ratedLevels: Record<Rating, Difficulty> = { singles: 'easy', 'pairs-and-locked': 'medium', advanced: 'hard' }
+const actualDifficulty = computed(() => store.puzzle ? ratedLevels[store.puzzle.rating] : store.difficulty)
 let clock: ReturnType<typeof setInterval> | undefined
 function returnToGame() {
   view.value = ''
@@ -89,7 +91,7 @@ onUnmounted(() => { clearInterval(clock); document.removeEventListener('visibili
         <div v-if="store.storageError" class="storage-alert" role="alert">{{ store.storageError }}</div>
 
         <div class="game-card">
-          <div class="board-meta"><span><span class="puzzle-indicator"></span>{{ DIFFICULTY_LABELS[store.difficulty] }}<template v-if="store.preferences.showRemainingCounts && store.puzzle"><span class="meta-separator">/</span>{{ store.puzzle.clues }} números iniciales</template></span><span class="board-status">{{ store.currentGame?.completedAt ? 'Completado' : 'En curso' }}</span></div>
+          <div class="board-meta"><span><span class="puzzle-indicator"></span>{{ DIFFICULTY_LABELS[actualDifficulty] }}<template v-if="store.preferences.showRemainingCounts && store.puzzle"><span class="meta-separator">/</span>{{ store.puzzle.clues }} números iniciales</template></span><span class="board-status">{{ store.currentGame?.completedAt ? 'Completado' : 'En curso' }}</span></div>
           <div v-if="store.loading" class="board-placeholder" role="status"><LoaderCircle class="loading-icon" :size="28" /><span>Preparando tu sudoku…</span></div>
           <div v-else-if="store.error" class="board-placeholder" role="alert"><p>{{ store.error }}</p><Button @click="openDate(store.selectedDate)">Volver a intentar</Button></div>
           <SudokuBoard v-else-if="store.puzzle" ref="boardRef" :hint-cells="highlightedCells" />
@@ -99,7 +101,7 @@ onUnmounted(() => { clearInterval(clock); document.removeEventListener('visibili
         </div>
         <HintPanel v-if="hint" :hint="hint" :level="hintLevel" @more="moreHint" @close="clearHint" />
         <div class="game-bottom"><p id="board-help">Selecciona una casilla y escribe un número.<br class="mobile-break" /><span> N para notas · Supr para borrar</span></p><span class="saved-indicator"><ShieldCheck :size="15" />{{ store.storageError ? 'Guardado no disponible' : 'Guardado automático' }}</span></div>
-        <p class="difficulty-note">{{ techniques[store.difficulty] }}</p>
+        <p class="difficulty-note"><template v-if="store.puzzle && actualDifficulty !== store.difficulty">Has elegido {{ DIFFICULTY_LABELS[store.difficulty] }}. Este tablero tiene dificultad {{ DIFFICULTY_LABELS[actualDifficulty] }}. </template>{{ techniques[actualDifficulty] }}</p>
         <Button variant="ghost" class="external-link" @click="openSolver"><ScanLine :size="17" />Resolver un sudoku de papel o de una foto</Button>
       </section>
 

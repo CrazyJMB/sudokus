@@ -70,6 +70,29 @@ test('edita un tablero externo, explica el siguiente número y conserva el estad
   await expect(first).toHaveValue('5')
 })
 
+for (const [title, input] of [
+  ['Tres números, tres casillas', '360008000050200008080000600970000001540000002213590806835040219197800463624931785'],
+  ['Triple oculto', '830007010000350000002060030503000192620000703790030600400800379309000420200943001'],
+]) test(`explica ${title} por etapas sin modificar el tablero`, async ({ page }) => {
+  const values = input!.split('').map(Number)
+  await seedExternal(page, values)
+  await page.goto('/#resolver')
+  const cells = page.locator('.external-board [role="gridcell"]')
+  await expect(cells).toHaveCount(81)
+  const before = await cells.evaluateAll(elements => elements.map(element => (element as HTMLInputElement).value))
+  const panel = page.getByRole('region', { name: 'Pista razonada' })
+  await page.getByRole('button', { name: 'Pedir una pista', exact: true }).click()
+  await expect(panel).toContainText('Hay una deducción que necesita varios pasos')
+  await expect(panel.locator('.hint-steps')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Otra pista', exact: true }).click()
+  await expect(panel.locator('.hint-steps')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Ver la respuesta', exact: true }).click()
+  await expect(panel).toContainText(title!)
+  await expect(panel).toContainText('Se descarta')
+  expect(await cells.evaluateAll(elements => elements.map(element => (element as HTMLInputElement).value))).toEqual(before)
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('sudoku-diario:external:v1')!).values)).toEqual(values)
+})
+
 test('la captura recibe una pista visual y solo revela la casilla al pedir la respuesta', async ({ page }) => {
   const values = ['900400500', '400930008', '007002000', '008043007', '243798615', '000000834', '000380102', '061200009', '000050000'].join('').split('').map(Number)
   await seedExternal(page, values)

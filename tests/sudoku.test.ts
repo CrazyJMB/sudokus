@@ -50,7 +50,8 @@ describe('motor diario', () => {
     const invalid = Array<number>(81).fill(0); invalid[0] = invalid[1] = 1
     expect(countSolutions(invalid)).toBe(0)
     expect(findConflicts(invalid)).toEqual(new Set([0, 1]))
-    expect(analyzeSudoku(invalid)).toMatchObject({ valid: false, solved: false })
+    expect(analyzeSudoku(invalid)).toMatchObject({ valid: false, solved: false, rating: null })
+    expect(rateSudoku(invalid)).toBeNull()
     expect(() => generateSudoku('2026-10-02', 'invalid' as 'easy')).toThrow('Invalid difficulty')
     for (const limit of [0, -1, 1.5, NaN, Infinity]) expect(() => countSolutions(Array(81).fill(0), limit)).toThrow()
     for (const index of [-1, 81, 0.5, NaN]) expect(() => candidateMask(Array(81).fill(0), index)).toThrow()
@@ -58,7 +59,8 @@ describe('motor diario', () => {
 
   it('limita la búsqueda, no modifica la entrada y distingue un bloqueo lógico de una solución', () => {
     const empty = Object.freeze(Array<number>(81).fill(0))
-    expect(analyzeSudoku(empty)).toMatchObject({ valid: true, solved: false, steps: [] })
+    expect(analyzeSudoku(empty)).toMatchObject({ valid: true, solved: false, steps: [], rating: null })
+    expect(rateSudoku(empty)).toBeNull()
     expect(countSolutions(empty)).toBe(2)
     const solutions = searchSolutions(empty)
     expect(solutions).toHaveLength(2)
@@ -67,6 +69,17 @@ describe('motor diario', () => {
     expect(isSolved(empty)).toBe(false)
     expect(isSolved(Array(81))).toBe(false)
     expect(isSolved(Array(81), { solution: solutions[0]! })).toBe(false)
+  })
+
+  it('no asigna dificultad a un tablero que sigue bloqueado después de algunas deducciones', () => {
+    const grid = Array<number>(81).fill(0)
+    grid.splice(0, 8, 1, 2, 3, 4, 5, 6, 7, 8)
+    const analysis = analyzeSudoku(grid)
+    expect(analysis.steps.length).toBeGreaterThan(0)
+    expect(analysis.maxRank).toBeGreaterThan(0)
+    expect(analysis).toMatchObject({ valid: true, solved: false, rating: null })
+    expect(rateSudoku(grid)).toBeNull()
+    expect(grid[8]).toBe(0)
   })
 
   it('usa una plantilla difícil determinista y verificada si se agotan los intentos', () => {

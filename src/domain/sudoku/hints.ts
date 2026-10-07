@@ -2,7 +2,7 @@ import { BOXES, COLUMNS, ROWS, UNITS, candidateMask, findConflicts, type Grid } 
 import { cellName, findEasyHint } from './easy-hints'
 export { cellName } from './easy-hints'
 
-export type HintTechnique = 'single' | 'hidden-single' | 'locked' | 'naked-pair' | 'hidden-pair' | 'x-wing'
+export type HintTechnique = 'single' | 'hidden-single' | 'locked' | 'naked-pair' | 'hidden-pair' | 'naked-triple' | 'hidden-triple' | 'x-wing'
 export interface HintStep {
   technique: HintTechnique
   title: string
@@ -39,7 +39,7 @@ export function getLogicalHint(grid: Grid): LogicalHint {
     status, message, cells, placement, steps: [...steps], candidates: masks.map(digits),
     guidance: (status === 'placement' || status === 'elimination') && steps.length ? {
       prompt: 'No veo una jugada directa. Hay una deducción que necesita varios pasos; puedes explorarla si quieres.',
-      nudge: steps[0]!.technique === 'locked' ? 'En la zona señalada, busca un número cuyos huecos posibles estén todos en una misma fila o columna.' : steps[0]!.technique === 'naked-pair' || steps[0]!.technique === 'hidden-pair' ? 'En la zona señalada, busca dos casillas que se puedan reservar para los mismos dos números.' : 'Esta pista necesita comparar varias filas o columnas. Puedes pedir la explicación completa cuando quieras.',
+      nudge: steps[0]!.technique === 'locked' ? 'En la zona señalada, busca un número cuyos huecos posibles estén todos en una misma fila o columna.' : steps[0]!.technique === 'naked-pair' || steps[0]!.technique === 'hidden-pair' ? 'En la zona señalada, busca dos casillas que se puedan reservar para los mismos dos números.' : steps[0]!.technique === 'naked-triple' || steps[0]!.technique === 'hidden-triple' ? 'En la zona señalada, busca tres casillas que se puedan reservar para los mismos tres números.' : 'Esta pista necesita comparar varias filas o columnas. Puedes pedir la explicación completa cuando quieras.',
       cells: [...steps[0]!.cells], nudgeCells: [...steps[0]!.cells],
     } : undefined,
   })
@@ -131,6 +131,30 @@ export function getLogicalHint(grid: Grid): LogicalHint {
     }
     if (changed) continue
 
+    outerTriples: for (const [u, unit] of UNITS.entries()) {
+      const cells = unit.filter(i => {
+        const count = digits(masks[i]!).length
+        return count >= 2 && count <= 3
+      })
+      for (let a = 0; a < cells.length - 2; a++) for (let b = a + 1; b < cells.length - 1; b++) for (let c = b + 1; c < cells.length; c++) {
+        const triple = [cells[a]!, cells[b]!, cells[c]!]
+        const mask = triple.reduce((union, i) => union | masks[i]!, 0)
+        if (digits(mask).length !== 3) continue
+        if (eliminate('naked-triple', 'Tres números, tres casillas', `En la ${unitName(u)}, los candidatos de ${positions(triple)} se limitan a {${digits(mask).join(', ')}}. Aunque cada casilla no admita los tres, esos tres números ocuparán esas tres casillas, en algún orden, y quedan excluidos de las demás.`, triple, unit.filter(i => !triple.includes(i)), mask)) {
+          changed = true; break outerTriples
+        }
+      }
+      for (let a = 1; a <= 7; a++) for (let b = a + 1; b <= 8; b++) for (let c = b + 1; c <= 9; c++) {
+        const mask = (1 << a) | (1 << b) | (1 << c)
+        const triple = unit.filter(i => masks[i]! & mask)
+        if (triple.length !== 3 || [a, b, c].some(digit => !triple.some(i => masks[i]! & (1 << digit)))) continue
+        if (eliminate('hidden-triple', 'Triple oculto', `En la ${unitName(u)}, los números {${a}, ${b}, ${c}} solo pueden ir en ${positions(triple)}. Estas tres casillas se reservan para esos tres números, por lo que no pueden contener otros candidatos.`, triple, triple, 0b1111111110 & ~mask)) {
+          changed = true; break outerTriples
+        }
+      }
+    }
+    if (changed) continue
+
     outerWing: for (const orientation of [0, 1]) {
       const units = orientation === 0 ? ROWS : COLUMNS
       const cross = orientation === 0 ? COLUMNS : ROWS
@@ -148,7 +172,7 @@ export function getLogicalHint(grid: Grid): LogicalHint {
     if (changed) continue
     return steps.length
       ? result('elimination', 'Puedes descartar estos candidatos. Todavía no se deduce un número con las técnicas disponibles.', [...new Set(steps.flatMap(s => s.eliminations.map(e => e.cell)))])
-      : result('stuck', 'No encuentro una deducción con candidatos únicos, pares, candidatos bloqueados o X-Wing. Puede hacer falta una técnica más avanzada o introducir más números del original.')
+      : result('stuck', 'No encuentro una deducción con candidatos únicos, pares, triples, candidatos bloqueados o X-Wing. Puede hacer falta una técnica más avanzada o introducir más números del original.')
   }
   return result('stuck', 'No se encontró una nueva deducción.')
 }

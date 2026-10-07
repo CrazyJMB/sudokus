@@ -286,6 +286,8 @@ export function isSolved(values: readonly number[], puzzle?: Pick<SudokuPuzzle, 
 }
 
 function toPuzzle(date: DateKey, difficulty: Difficulty, candidate: CandidatePuzzle): SudokuPuzzle {
+  const rating = candidate.analysis.rating
+  if (rating === null) throw new Error('No se puede clasificar un sudoku sin resolución lógica completa.')
   return {
     id: puzzleId(date, difficulty),
     version: GENERATOR_VERSION,
@@ -294,7 +296,7 @@ function toPuzzle(date: DateKey, difficulty: Difficulty, candidate: CandidatePuz
     givens: candidate.givens,
     solution: candidate.solution,
     clues: candidate.clues,
-    rating: candidate.analysis.rating,
+    rating,
     analysis: candidate.analysis,
   }
 }

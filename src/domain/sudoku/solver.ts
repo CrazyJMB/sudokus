@@ -428,7 +428,7 @@ export function analyzeSudoku(grid: readonly number[]): SolveAnalysis {
       maxTechnique: null,
       maxRank: 0,
       score: 0,
-      rating: 'singles',
+      rating: null,
     }
   }
 
@@ -494,7 +494,7 @@ export function analyzeSudoku(grid: readonly number[]): SolveAnalysis {
     maxTechnique,
     maxRank,
     score,
-    rating: ratingForRank(maxRank),
+    rating: solved ? ratingForRank(maxRank) : null,
   }
 }
 
@@ -571,6 +571,7 @@ export function solveSudoku(grid: readonly number[], random?: Random): Grid | nu
   return searchSolutions(grid, 1, random)[0] ?? null
 }
 
-export function rateSudoku(grid: readonly number[]): Rating {
+/** Unsolved or contradictory boards have no reliable logical difficulty. */
+export function rateSudoku(grid: readonly number[]): Rating | null {
   return analyzeSudoku(grid).rating
 }

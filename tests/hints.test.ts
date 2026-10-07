@@ -71,8 +71,12 @@ describe('pistas por deducción', () => {
   it.each([
     ['x-wing', '000005000081200060045300290060820004000056002050710609010602940020000700093570820', '972165438381294567645387291167829354839456172254713689718632945526948713493571826'],
     ['hidden-pair', '000240105080013090100009300000126907000700803700300206001400000020900000450000030', '963248175287513694145679328538126947612794853794385216871432569326957481459861732'],
+    ['naked-triple', '360008000050200008080000600970000001540000002213590806835040219197800463624931785', '362178594759264138481359627976482351548613972213597846835746219197825463624931785'],
+    ['hidden-triple', '830007010000350000002060030503000192620000703790030600400800379309000420200943001', '835497216164352987972168534543786192628519743791234658416825379389671425257943861'],
   ])('explica %s y conserva los candidatos de la solución', (technique, input, solution) => {
-    const hint = getLogicalHint(input.split('').map(Number))
+    const grid = input.split('').map(Number)
+    Object.freeze(grid)
+    const hint = getLogicalHint(grid)
     expect(hint.status).not.toBe('invalid')
     expect(hint.steps.some(step => step.technique === technique)).toBe(true)
     for (const step of hint.steps) for (const removal of step.eliminations) {
@@ -97,7 +101,7 @@ describe('pistas por deducción', () => {
         expect(hint.placement.digit).toBe(puzzle.solution[hint.placement.cell])
         grid[hint.placement.cell] = hint.placement.digit
       }
-      if (level !== 'hard') expect(grid).toEqual(puzzle.solution)
+      expect(grid).toEqual(puzzle.solution)
     }
     expect(used.has('single')).toBe(true)
     expect(used.has('hidden-single')).toBe(true)

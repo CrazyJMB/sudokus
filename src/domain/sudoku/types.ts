@@ -48,7 +48,8 @@ export interface SolveAnalysis {
   maxTechnique: Technique | null
   maxRank: number
   score: number
-  rating: Rating
+  /** Null when the logical solver cannot complete a valid solution. */
+  rating: Rating | null
 }
 
 export interface SudokuPuzzle {

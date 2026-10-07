@@ -5,8 +5,35 @@ import { createPinia } from 'pinia'
 import App from '../src/App.vue'
 import { useSudokuStore } from '../src/stores/sudoku'
 import SettingsPanel from '../src/components/SettingsPanel.vue'
+import { DIFFICULTY_PROFILES } from '../src/domain/sudoku'
 
 describe('composición de la interfaz', () => {
+  it('muestra la dificultad real del tablero de reserva y conserva el nivel elegido para reabrirlo', async () => {
+    const pinia = createPinia()
+    const store = useSudokuStore(pinia)
+    const attempts = DIFFICULTY_PROFILES.medium.maximumAttempts
+    try {
+      DIFFICULTY_PROFILES.medium.maximumAttempts = 1
+      await store.openGame('2026-10-01', 'medium')
+      expect(store.puzzle!.rating).toBe('singles')
+      expect(store.puzzle?.version === 'v2' && store.puzzle.analysis.solved).toBe(true)
+      const id = store.puzzle!.id
+      const empty = store.puzzle!.givens.findIndex(value => !value)
+      store.selectedIndex = empty; store.enterDigit(store.puzzle!.solution[empty]!)
+      await store.openGame('2026-10-01', 'medium')
+      expect(store.currentGame!.values[empty]).toBe(store.puzzle!.solution[empty])
+      expect(store.puzzle!.id).toBe(id)
+      expect(store.difficulty).toBe('medium')
+      expect(store.currentGame!.difficulty).toBe('medium')
+      const app = createSSRApp(App); app.use(pinia)
+      const html = await renderToString(app)
+      expect(html).toMatch(/class="board-meta"[^]*?Fácil/)
+      expect(html).toContain('Has elegido Media. Este tablero tiene dificultad Fácil.')
+      expect(html).toContain('Candidatos únicos y únicos ocultos.')
+      expect(html).not.toContain('Añade pares y candidatos bloqueados.')
+    } finally { DIFFICULTY_PROFILES.medium.maximumAttempts = attempts }
+  })
+
   it('renderiza las 81 casillas y los controles shadcn-vue con una partida real', async () => {
     const pinia = createPinia()
     const app = createSSRApp(App); app.use(pinia)
